@@ -1,0 +1,19 @@
+/ An invalid comment
+/* Multi line comment */
+
+// Single line comment
+////// Slightly deranged but still valid single line comment ///////
+deadbeef // Comment after
+ca f eb abe // Spaces are irrelevant, bytes get fused together in the end fine
+/*
+	Multi line comment
+	/*
+		Nested
+		multi line
+		comment
+	*/
+*/
+
+
+0123456789abcdef // Full valid character set
+a // should be fused to become `a0`
