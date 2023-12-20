@@ -26,6 +26,9 @@ namespace h2b {
 			"Error: An ending delimiter has been found "
 			"without its corresponding starting delimiter"
 		};
+		std::string_view couldnt_open_output_file {
+			"Error: Couldnt open output file"
+		};
 	} error_messages;
 	
 	std::string_view help_prompt { "Type -h to see program usage" };
@@ -316,6 +319,21 @@ namespace h2b {
 		
 		return retval;
 	}
+
+	bool write_data_to_file(std::string_view filename, std::vector<uint8_t> data) {
+		std::fstream file { filename, std::ios::binary | std::ios::trunc | std::ios::out };
+
+		if (!file.is_open()) {
+			std::cout
+				<< error_messages.couldnt_open_output_file << "\n"
+				<< "The file in question: \"" << filename << "\"\n";
+			return false;
+		}
+
+		for (auto byte: data)
+			file.write(reinterpret_cast<char*>(&byte), sizeof byte);
+		file.close();
+	}
 	
 	bool start(std::vector<std::string_view> args) {
 		auto infiles = get_infiles({
@@ -387,7 +405,11 @@ namespace h2b {
 		std::cout << "]\n";
 		*/
 
-		//write_file(outfile_data.value());
+		if (!write_data_to_file(outfiles[0], outfile_data)) {
+			std::cout
+				<< "Error: unable to write output file\n";
+			return false;
+		}
 		
 		return true;
 	}
