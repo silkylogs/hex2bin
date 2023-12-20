@@ -365,21 +365,9 @@ namespace h2b {
 			std::cout << error_messages.couldnt_open_one_or_more_files << "\n";
 			return false;
 		}
-		/*
-		std::cout
-			<< "Entered text:\n"
-			<< "---------------------------------------------------\n"
-			<< infile_text_data.value_or("No text found") << "\n";
-		*/
 		
 		auto single_line_comment_stripped_text =
 			strip_single_line_comments(infile_text_data.value(), "//");
-		/*
-		std::cout
-			<< "Single line comment stripped text:\n"
-			<< "---------------------------------------------------\n"
-			<< single_line_comment_stripped_text << "\n";
-		*/
 		
 		auto multi_line_comment_stripped_text =
 			strip_multi_line_comments_nested(single_line_comment_stripped_text, "/*", "*/");
@@ -388,21 +376,7 @@ namespace h2b {
 			return false;
 		}
 
-		/*
-		std::cout
-			<< "Multi line comment stripped text:\n"
-			<< "---------------------------------------------------\n"
-			<< multi_line_comment_stripped_text.value_or("Error") << "\n";
-		*/
-
 		auto outfile_data = hex_to_bin(multi_line_comment_stripped_text.value());
-
-		/*
-		std::cout << "As bytes: [ ";
-		for (size_t num: outfile_data) 
-			std::cout << std::hex << "0x" << num << std::dec <<  " ";
-		std::cout << "]\n";
-		*/
 
 		if (!write_data_to_file(outfiles[0], outfile_data)) {
 			std::cout
@@ -416,13 +390,5 @@ namespace h2b {
 
 int main(int argc, char **argv) {
 	std::vector<std::string_view> args { argv, argv + argc };
-
-	/*
-	std::cout << "Program recieved arguments: [";
-	for (auto arg: args)
-		std::cout << "\"" << arg << "\" ";
-	std::cout << "]\n";
-	*/
-
 	return static_cast<int>(!h2b::start(args));
 }
