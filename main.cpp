@@ -7,7 +7,6 @@
 #include <fstream>
 #include <filesystem>
 
-// TODO: add a readme for this project
 namespace h2b {
 	static const struct ErrorMessages {
 		std::string_view no_infiles { "Error: no infiles detected" };
