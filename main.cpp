@@ -80,6 +80,7 @@ namespace h2b {
 			std::stringstream temp_str;
 			temp_str <<  file.rdbuf();
 			text_from_all_files += temp_str.str();
+			file.close();
 		}
 		
 		return std::make_optional(text_from_all_files);
@@ -218,7 +219,7 @@ namespace h2b {
 
 			bool token_symbol_found = token_char_found;
 			return token_symbol_found;
-		};		
+		};
 
 		do {	
 			// A potential starting delimiter is found			
@@ -264,8 +265,57 @@ namespace h2b {
 		return std::make_optional(stripped_src);
 	}
 	
-	std::optional<std::vector<uint8_t>>
-	hex_to_bin(std::string hex);
+	std::vector<uint8_t> hex_to_bin(std::string src_hex) {
+		auto hexfilter = [](char c) -> bool {
+			return (c == '0')
+			| (c == '1')
+			| (c == '2')
+			| (c == '3')
+			| (c == '4')
+			| (c == '5')
+			| (c == '6')
+			| (c == '7')
+			| (c == '8')
+			| (c == '9')
+			| (c == 'a')
+			| (c == 'b')
+			| (c == 'c')
+			| (c == 'd')
+			| (c == 'e')
+			| (c == 'f')
+			| (c == 'A')
+			| (c == 'B')
+			| (c == 'C')
+			| (c == 'D')
+			| (c == 'E')
+			| (c == 'F');
+		};
+
+		auto char_to_bin = [](char c) -> std::optional<uint8_t> {
+			if (c >= '0' && c <= '9') {
+				return std::make_optional(c - '0');
+			} else if (c >= 'A' && c <= 'F') {
+				return std::make_optional((c - 'A') + 0xa);
+			} else if (c >= 'a' && c <= 'f') {
+				return std::make_optional((c - 'a') + 0xa);
+			} else { return std::nullopt; }
+		};
+		
+		std::string filtered_str; 
+		for (auto c: src_hex | std::views::filter(hexfilter)) filtered_str += c;
+		if (filtered_str.length() % 2 == 0) filtered_str += '0';
+
+		std::vector<uint8_t> retval;
+		
+		for (size_t i = 0; i < filtered_str.size(); i += 2) {
+			uint8_t num = (
+				char_to_bin(filtered_str[i]).value_or(0) << 4)
+				| char_to_bin(filtered_str[i+1]).value_or(0);
+			retval.emplace_back(num);
+		}
+		
+		return retval;
+	}
 	
 	bool start(std::vector<std::string_view> args) {
 		auto infiles = get_infiles({
@@ -298,28 +348,46 @@ namespace h2b {
 			std::cout << error_messages.couldnt_open_one_or_more_files << "\n";
 			return false;
 		}
+		/*
 		std::cout
 			<< "Entered text:\n"
 			<< "---------------------------------------------------\n"
 			<< infile_text_data.value_or("No text found") << "\n";
+		*/
 		
 		auto single_line_comment_stripped_text =
 			strip_single_line_comments(infile_text_data.value(), "//");
+		/*
 		std::cout
 			<< "Single line comment stripped text:\n"
 			<< "---------------------------------------------------\n"
 			<< single_line_comment_stripped_text << "\n";
-
+		*/
+		
 		auto multi_line_comment_stripped_text =
-			strip_multi_line_comments_nested(single_line_comment_stripped_text, "/*", "*/")
-			.value_or("No text");
+			strip_multi_line_comments_nested(single_line_comment_stripped_text, "/*", "*/");
+		if (!multi_line_comment_stripped_text.has_value()) {
+			std::cout << "Encountered an error while stripping multi line comments\n";
+			return false;
+		}
+
+		/*
 		std::cout
 			<< "Multi line comment stripped text:\n"
 			<< "---------------------------------------------------\n"
-			<< multi_line_comment_stripped_text << "\n";
+			<< multi_line_comment_stripped_text.value_or("Error") << "\n";
+		*/
 
-		// auto outfile_data = hex_to_bin(infile_text_data.value());
-		// write_file(outfile_data);
+		auto outfile_data = hex_to_bin(multi_line_comment_stripped_text.value());
+
+		/*
+		std::cout << "As bytes: [ ";
+		for (size_t num: outfile_data) 
+			std::cout << std::hex << "0x" << num << std::dec <<  " ";
+		std::cout << "]\n";
+		*/
+
+		//write_file(outfile_data.value());
 		
 		return true;
 	}
@@ -328,24 +396,12 @@ namespace h2b {
 int main(int argc, char **argv) {
 	std::vector<std::string_view> args { argv, argv + argc };
 
+	/*
 	std::cout << "Program recieved arguments: [";
 	for (auto arg: args)
 		std::cout << "\"" << arg << "\" ";
 	std::cout << "]\n";
+	*/
 
 	return static_cast<int>(!h2b::start(args));
-	
-	/*
-    auto const ints = {0, 1, 2, 3, 4, 5};
-    auto even = [](int i) { return 0 == i % 2; };
-    auto square = [](int i) { return i * i; };
- 
-    // the "pipe" syntax of composing the views:
-    for (int i : ints
-		 | std::views::filter(even)
-		 | std::views::transform(square))
-        std::cout << i << ' ';
- 
-    std::cout << '\n';
-	*/
 }
