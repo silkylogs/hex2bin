@@ -22,6 +22,10 @@ namespace h2b {
 		std::string_view couldnt_open_particular_input_file {
 			"Error: Couldnt open a particular input file"
 		};
+		std::string_view ending_delimiter_found_without_starting_delimiter {
+			"Error: An ending delimiter has been found "
+			"without its corresponding starting delimiter"
+		};
 	} error_messages;
 	
 	std::string_view help_prompt { "Type -h to see program usage" };
@@ -161,7 +165,104 @@ namespace h2b {
 
 		return stripped;
 	}
-	
+
+	std::optional<std::string> strip_multi_line_comments_nested(
+		std::string_view src,
+		std::string_view delimiter_start,
+		std::string_view delimiter_end)
+	{
+		std::string stripped_src;
+		bool should_continue_checking_for_comment = true;
+		bool src_idx_in_range = true;
+		size_t i = 0, comment_nest_level = 0;
+		bool is_comment_nest_level_zero = (comment_nest_level == 0);
+
+		auto is_token_present_at_index = [](
+			std::string_view src,
+			std::string_view token,
+			size_t idx) -> bool {
+
+			bool token_char_found = false;
+			// A potential comment is found
+			if (src[idx] == token[0]) {
+				bool token_idx_in_range, should_continue_checking_for_token;
+				size_t token_idx = 0;
+				
+				// Check wether rest of the token is present
+				size_t token_start_idx = idx;
+				size_t token_end_idx = token_start_idx;
+				do {
+					token_end_idx++;
+					token_idx++;
+					
+					// Index bounds checking
+					bool token_idx_in_range = token_idx < token.size();
+					if (!token_idx_in_range) break;
+					
+					bool src_idx_in_range = idx < src.size();
+					if (!src_idx_in_range) {
+						token_char_found = false;
+						break;
+					}
+					
+					auto char_in_src_at_token_end_idx = src[token_end_idx];
+					auto char_in_token_at_token_idx = token[token_idx];
+					
+					token_char_found =
+						char_in_src_at_token_end_idx ==
+						char_in_src_at_token_end_idx;
+					should_continue_checking_for_token =
+						token_char_found && token_idx_in_range;
+				} while(should_continue_checking_for_token);
+			}
+
+			bool token_symbol_found = token_char_found;
+			return token_symbol_found;
+		};		
+
+		do {	
+			// A potential starting delimiter is found			
+			auto delim_start_token_found_at_index =
+				is_token_present_at_index(src, delimiter_start, i);
+			if (delim_start_token_found_at_index) {
+				i += delimiter_start.size();
+				comment_nest_level++;
+			}
+
+			// An ending delimiter is found
+			auto delim_end_token_found_at_index = is_token_present_at_index(
+				src, delimiter_end, i);
+			if (delim_end_token_found_at_index) {
+				is_comment_nest_level_zero = (comment_nest_level == 0);
+				if(is_comment_nest_level_zero) {
+					std::cout
+						<< error_messages
+						.ending_delimiter_found_without_starting_delimiter << "\n";
+					return std::nullopt;
+				}
+				
+				i += delimiter_end.size();
+				comment_nest_level--;
+			}
+
+			is_comment_nest_level_zero = (comment_nest_level == 0);
+			if (is_comment_nest_level_zero) {
+				stripped_src += src[i];
+			}
+
+			i++;
+			src_idx_in_range = i < src.size();
+			should_continue_checking_for_comment = src_idx_in_range;
+		} while (should_continue_checking_for_comment);
+
+		if (!is_comment_nest_level_zero) {
+			std::cout <<
+				"Error: Comment nest level is found to be nonzero. "
+				"Current level: " << comment_nest_level << "\n";
+			return std::nullopt;
+		}
+		return std::make_optional(stripped_src);
+	}
 	
 	std::optional<std::vector<uint8_t>>
 	hex_to_bin(std::string hex);
@@ -209,9 +310,9 @@ namespace h2b {
 			<< "---------------------------------------------------\n"
 			<< single_line_comment_stripped_text << "\n";
 
-		/*
 		auto multi_line_comment_stripped_text =
-			strip_multi_line_comments(single_line_comment_stripped_text, "\/*", "*\/");
+			strip_multi_line_comments_nested(single_line_comment_stripped_text, "/*", "*/")
+			.value_or("No text");
 		std::cout
 			<< "Multi line comment stripped text:\n"
 			<< "---------------------------------------------------\n"
@@ -219,7 +320,6 @@ namespace h2b {
 
 		// auto outfile_data = hex_to_bin(infile_text_data.value());
 		// write_file(outfile_data);
-		*/
 		
 		return true;
 	}
