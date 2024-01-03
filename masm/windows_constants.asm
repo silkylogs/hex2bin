@@ -1,0 +1,3 @@
+;;; Windows constants
+
+	classStyle equ CS_VREDRAW OR CS_HREDRAW OR CS_DBLCLKS OR CS_OWNDC OR CS_PARENTDC

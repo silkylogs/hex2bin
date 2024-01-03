@@ -1,0 +1,2 @@
+	hInstance		qword	?
+	lpCmdLine		qword	?
