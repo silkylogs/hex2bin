@@ -15,19 +15,16 @@
 
 	;; Variable data	
 	.data
-	;; include lookups.asm
-	;; include riid.asm
-	;; include routers.asm
-	;; include strings.asm
+	;include strings.asm
 	include structs.asm
 	include variables.asm
 
 	;; Executable code
 	.code
-
-	align	qword
+	printString	byte	'Hello, world!', 0dh, 0ah, 0h 
 
 	;; Program main execution point
+	align	qword
 	Startup proc
 
 	;; Needed for WinCall
@@ -49,23 +46,30 @@
 	xor		rax, rax
 	mov		ax, startup_info.wShowWindow
 
-	;; WinMain(
+	;; return WinMain(
 	;;	hInstance, hPrevInstance,
 	;;	lpCmdLine, nCmdShow);
 	mov		r9, rax
 	mov		r8, lpCmdLine
 	xor		rdx, rax
 	mov		rcx, hInstance
-	call		RetFive
-
-	;; return WinMain();
-	mov		rax, rax
+	call		WinMain
 	ret
 	Startup endp
 
-	RetFive proc
+	WinMain proc
+	local		holder:qword
+	local		printStringPtr:qword
+
+	lea		rcx, printString
+	mov		printStringPtr, rcx
+
+	mov		rax, 0FFFFFFFFFFFFFFF5h
+	WinCall		GetStdHandle, rax
+	WinCall		WriteConsole, rax, printStringPtr, 16, 0, 0
+	
 	mov		rax, 5
 	ret
-	RetFive endp
+	WinMain endp
 
 	end

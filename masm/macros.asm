@@ -12,55 +12,47 @@
 	;; Any parameters beyond the 4th are placed on the stack.
 	;; TODO: cleanup
 	
-;***** [Declare macro] ************************************************
+	WinCall		macro call_dest:req, argnames:vararg 
 
-	WinCall                                          macro               call_dest:req, argnames:vararg                    ; Declare macro
+        local jump_1, lpointer, numArgs       ; Declare local labels
+        numArgs = 0                             ; Initialize # arguments passed
 
-        local               jump_1, lpointer, numArgs                         ; Declare local labels
+        for argname, <argnames>  ; Loop through each argument passed
+        	numArgs           = numArgs + 1        ; Increment local # arguments count
+        endm                                     ; End of FOR looop
 
-                                ;***** [Process] ******************************************************
+        if numArgs lt 4                          ; If # arguments passed < 4
+        numArgs = 4                                       ; Set count to 4
+        endif                                               ; End IF
 
-        numArgs             = 0                                               ; Initialize # arguments passed
+        mov  holder, rsp              ; Save the entry RSP value
 
-        for                 argname, <argnames>                               ; Loop through each argument passed
-        numArgs           = numArgs + 1                                     ; Increment local # arguments count
-        endm                                                                  ; End of FOR looop
+        sub  rsp, numArgs * 8         ; Back up RSP 1 qword for each parameter passed
 
-        if numArgs lt 4                                                       ; If # arguments passed < 4
-        numArgs = 4                                                         ; Set count to 4
-        endif                                                                 ; End IF
-
-        mov                 holder, rsp                                       ; Save the entry RSP value
-
-        sub                 rsp, numArgs * 8                                  ; Back up RSP 1 qword for each parameter passed
-
-        test                rsp, 0Fh                                          ;
-        jz                  jump_1                                            ;
-        and                 rsp, 0FFFFFFFFFFFFFFF0h                           ; Clear low 4 bits for para alignment
+        test rsp, 0Fh                 ;
+        jz   jump_1                   ;
+        and  rsp, 0FFFFFFFFFFFFFFF0h  ; Clear low 4 bits for para alignment
 jump_1:
-        lPointer            = 0                                               ; Initialize shadow area @ RSP + 0
+        lPointer            = 0       ; Initialize shadow area @ RSP + 0
 
-        for                 argname, <argnames>                               ; Loop through arguments
-        if                lPointer gt 24                                    ; If not on argument 0, 1, 2, 3
-        mov             rax, argname                                      ; Move argument into RAX
-        mov             [ rsp + lPointer ], rax                           ; Shadow the next parameter on the stack
-        elseif            lPointer eq 0                                     ; If on argument 0
-        mov             rcx, argname                                      ; Argument 0 -> RCX
-        elseif            lPointer eq 8                                     ; If on argument 1
-        mov             rdx, argname                                      ; Argument 1 -> RDX
-        elseif            lPointer eq 16                                    ; If on argument 2
-        mov             r8, argname                                       ; Argument 2 -> R8
-        elseif            lPointer eq 24                                    ; If on argument 3
-        mov             r9, argname                                       ; Argument 3 -> R9
-        endif                                                               ; End IF
-        lPointer          = lPointer + 8                                    ; Advance the local pointer by 1 qword
-        endm                                                                  ; End FOR looop
+        for        argname, <argnames>  ; Loop through arguments
+        if       lPointer gt 24         ; If not on argument 0, 1, 2, 3
+        mov    rax, argname             ; Move argument into RAX
+        mov    [ rsp + lPointer ], rax  ; Shadow the next parameter on the stack
+        elseif   lPointer eq 0          ; If on argument 0
+        mov    rcx, argname             ; Argument 0 -> RCX
+        elseif   lPointer eq 8          ; If on argument 1
+        mov    rdx, argname             ; Argument 1 -> RDX
+        elseif   lPointer eq 16         ; If on argument 2
+        mov    r8, argname              ; Argument 2 -> R8
+        elseif   lPointer eq 24         ; If on argument 3
+        mov    r9, argname              ; Argument 3 -> R9
+        endif                           ; End IF
+        lPointer = lPointer + 8         ; Advance the local pointer by 1 qword
+        endm                            ; End FOR looop
 
-        call                call_dest                                         ; Execute call to destination function
-
-        mov                 rsp, holder                                       ; Reset the entry RSP value
-
-                                ;***** [End macro] ****************************************************
+        call                call_dest   ; Execute call to destination function
+        mov                 rsp, holder ; Reset the entry RSP value
 
         endm 
 
