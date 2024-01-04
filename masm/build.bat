@@ -19,17 +19,20 @@ set linker="%link_directory%\link.exe"
 
 %assembler% /nologo /c /Cp /Cx /Fm /FR /W2 /Zd /Zf /Zi /Ta main.asm > %assembler_error_log%
 
+REM %linker% ^
+REM main.obj resource.res ^
+REM /nologo /opt:ref /opt:noicf /largeaddressaware:no ^
+REM /entry:Startup /machine:x64 /debug:full ^
+REM /map /out:main.exe /PDB:main.pdb /subsystem:console ^
+REM %kit_directory%\kernel32.lib ^
+REM %kit_directory%\user32.lib ^
+REM %kit_directory%\winmm.lib 
+
 %linker% ^
-main.obj resource.res ^
-/nologo /debug:none /opt:ref /opt:noicf /largeaddressaware:no ^
-/def:DXSample.def /entry:Startup /machine:x64 /debug:full ^
-/map /out:main.exe /PDB:main.pdb /subsystem:windows,6.0 ^
-%kit_directory%\kernel32.lib ^
-%kit_directory%\user32.lib ^
-%kit_directory%\d3d11.lib ^
-%kit_directory%\d3dcompiler.lib ^
-%kit_directory%\winmm.lib 
-REM ^ DXSampleMath.lib
+main.obj kernel32.lib user32.lib winmm.lib ^
+/nologo /opt:ref /opt:noicf /largeaddressaware:no ^
+/entry:Startup /machine:x64 /debug:full ^
+/map /out:main.exe /PDB:main.pdb /subsystem:console 
 
 echo Errors from %assembler_error_log%, if any:
 type %assembler_error_log%

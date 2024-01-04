@@ -56,8 +56,16 @@
 	mov		r8, lpCmdLine
 	xor		rdx, rax
 	mov		rcx, hInstance
-	call		WinMain
+	call		RetFive
 
-	;; return 0;
-	xor		rax, rax
+	;; return WinMain();
+	mov		rax, rax
+	ret
 	Startup endp
+
+	RetFive proc
+	mov		rax, 5
+	ret
+	RetFive endp
+
+	end

@@ -25,19 +25,19 @@
 
 	startup_info STARTUPINFO <>
 
-	wcl		label	WNDCLASSEX
-	dword		sizeof ( WNDCLASSEX ) ; cbSize
-	dword		classStyle	      ; dwStyle
-	qword		mainCallback	      ; lpfnCallback
-	dword		0		      ; cbClsExtra
-	dword		0		      ; cbWndExtra
-	qword		?		      ; hInst
-	qword		?		      ; hIcon
-	qword		?		      ; hCursor
-	qword		?		      ; hbrBackground
-	qword		mainName	      ; lpszMenuName
-	qword		mainClass	      ; lpszClassName
-	qword		?		      ; hIconSm
+	;wcl		label	WNDCLASSEX
+	;dword		sizeof ( WNDCLASSEX ) ; cbSize
+	;dword		classStyle	      ; dwStyle
+	;qword		mainCallback	      ; lpfnCallback
+	;dword		0		      ; cbClsExtra
+	;dword		0		      ; cbWndExtra
+	;qword		?		      ; hInst
+	;qword		?		      ; hIcon
+	;qword		?		      ; hCursor
+	;qword		?		      ; hbrBackground
+	;qword		mainName	      ; lpszMenuName
+	;qword		mainClass	      ; lpszClassName
+	;qword		?		      ; hIconSm
 	
 	
 	

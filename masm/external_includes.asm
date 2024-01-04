@@ -9,8 +9,5 @@
 	GetStartupInfo  textequ <__imp_GetStartupInfoA>
 	
 	
-	extrn __imp_DefWindowProc:qword
-	DefWindowProc textequ <__imp_DefWindowProc>
-	
 	extrn __imp_GetClassNameA:qword
 	GetClassName textequ <__imp_GetClassNameA>
