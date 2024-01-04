@@ -1,3 +1,6 @@
 ;;; Windows constants
 
-	classStyle equ CS_VREDRAW OR CS_HREDRAW OR CS_DBLCLKS OR CS_OWNDC OR CS_PARENTDC
+	; https://learn.microsoft.com/en-us/windows/console/getstdhandle
+	STD_INPUT_HANDLE	equ -10
+	STD_OUTPUT_HANDLE	equ -11
+	STD_ERROR_HANDLE	equ -12

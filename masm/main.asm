@@ -15,16 +15,15 @@
 
 	;; Variable data	
 	.data
-	;include strings.asm
+	include strings.asm
 	include structs.asm
 	include variables.asm
 
 	;; Executable code
 	.code
-	printString	byte	'Hello, world!', 0dh, 0ah, 0h 
 
 	;; Program main execution point
-	align	qword
+	align qword
 	Startup proc
 
 	;; Needed for WinCall
@@ -59,17 +58,29 @@
 
 	WinMain proc
 	local		holder:qword
-	local		printStringPtr:qword
 
-	lea		rcx, printString
-	mov		printStringPtr, rcx
-
-	mov		rax, 0FFFFFFFFFFFFFFF5h
+	mov		rax, STD_OUTPUT_HANDLE
 	WinCall		GetStdHandle, rax
-	WinCall		WriteConsole, rax, printStringPtr, 16, 0, 0
+
+	lea		r9, printString
+	mov		r10, sizeof printString 
+	WinCall		WriteConsole, rax, r9, r10, 0, 0
 	
 	mov		rax, 5
 	ret
 	WinMain endp
+
+; Main program logic
+; - Allocate memory equal to size of input file, exit on failure
+; - Go through the bytes of input
+;   - On multi line comment detection, employ nested semantics
+;   - On single line comment detection, employ non-nested semantics
+;   - Otherwise
+;     - If character is whitespace or newline or tab, ignore
+;     - If character is valid hex character, copy to output
+;     - Else report offending
+;       - byte, char representaion, location
+;       - Set failure byte
+; - If not failed, write bytes to output
 
 	end
