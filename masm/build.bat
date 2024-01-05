@@ -10,29 +10,30 @@ set ml_directory=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\V
 rem Set this value to the location of link.exe under the VC directory
 set link_directory=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64
 
-set assembler_error_log=assembler_errors.txt
+rem General settings
+set executable_name="hex2bin.exe"
 set resource_compiler="%rc_directory%\rc.exe"
 set assembler="%ml_directory%\ml64.exe"
 set linker="%link_directory%\link.exe"
+set assembler_error_log="assembler_errors.txt"
 
-%resource_compiler% /nologo resource.rc
+rem Libraries
+set lib_kernel32="%kit_directory%\kernel32.lib"
+set lib_user32="%kit_directory%\user32.lib"
+set lib_winmm="%kit_directory%\winmm.lib"
 
-%assembler% /nologo /c /Cp /Cx /Fm /FR /W2 /Zd /Zf /Zi /Ta main.asm > %assembler_error_log%
-
-REM %linker% ^
-REM main.obj resource.res ^
-REM /nologo /opt:ref /opt:noicf /largeaddressaware:no ^
-REM /entry:Startup /machine:x64 /debug:full ^
-REM /map /out:main.exe /PDB:main.pdb /subsystem:console ^
-REM %kit_directory%\kernel32.lib ^
-REM %kit_directory%\user32.lib ^
-REM %kit_directory%\winmm.lib 
+mkdir bin
+pushd bin
+%resource_compiler% /nologo ..\resource.rc
+%assembler% /nologo /c /Cp /Cx /Fm /FR /W2 /Zd /Zf /Zi /Ta ..\main.asm > %assembler_error_log%
 
 %linker% ^
-main.obj kernel32.lib user32.lib winmm.lib ^
+main.obj ..\resource.res %lib_kernel32% %lib_user32% %lib_winmm% ^
 /nologo /opt:ref /opt:noicf /largeaddressaware:no ^
 /entry:Startup /machine:x64 /debug:full ^
-/map /out:main.exe /PDB:main.pdb /subsystem:console 
+/map /out:%executable_name% /PDB:main.pdb /subsystem:console
 
 echo Errors from %assembler_error_log%, if any:
 type %assembler_error_log%
+
+popd
