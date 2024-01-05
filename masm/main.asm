@@ -70,8 +70,44 @@
 	ret
 	WinMain endp
 
-; Main program logic
-; - Allocate memory equal to size of input file, exit on failure
+; // Overall program operation
+; // It is implied that after every line there is some mechanism
+; // that reports errors, if any
+; tokenized_cmdline = try_tokenize_cmdline_input(lpCmdLine)
+;
+; validate_one_or_more_input_filenames(tokenized_cmdline)
+; input_filenames = try_extract_input_filenames(tokenized_cmdline)
+;
+; validate_only_one_output_filename(tokenized_cmdline)
+; output_filename = try_extract_first_output_filename(tokenized_cmdline)
+;
+; master_input_text = malloc()
+; for filename in input_filenames
+;     file_handle = try_open_file(filename)
+;     file_text = try_getting_text(file_handle)
+;     try_concatenate_file_contents(file_text to master_input_text)
+;
+; output_memory_buffer = try_extract_valid_chars(master_input_text_file)
+; output_memory_buffer = convert_to_hex(output_memory_buffer)
+;
+; output_file_handle = try_open_binary_file(output_filename)
+; try_writing_data_to_file(output_file_handle)
+
+; assume(is_valid_ptr(input_text))
+; assume(is_valid_ptr(output_text))
+; assume(input_text_size >= output_text_size)
+; try_extract_valid_chars(input_text, input_text_size,
+;                         output_text, output_text_size)
+;   input_end_ptr = input_text + sizeof char * input_text_size
+;   output_end_ptr = output_text + sizeof char * output_text_size
+;   iptr = input_text
+;   optr = output_text
+;
+;   // insert other state here
+;
+;   loop
+;      should_break = try_extract_valid_chars_single_step(state, iptr, optr)
+;
 ; - Go through the bytes of input
 ;   - On multi line comment detection, employ nested semantics
 ;   - On single line comment detection, employ non-nested semantics
