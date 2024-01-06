@@ -6,28 +6,26 @@
 ;;; If all else fails, when in your nasm buffer, hit M-: to call eval-expression and enter
 ;;; (local-set-key ";" 'self-insert-command).
 
-	;; Constant data	
-	include program_constants.asm
-	include external_includes.asm
-	include macros.asm
-	include external_structs.asm 
-	include windows_constants.asm
+;; Constant data	
+include program_constants.asm
+include external_includes.asm
+include macros.asm
+include external_structs.asm 
+include windows_constants.asm
 
-	;; Variable data	
-	.data
-	include strings.asm
-	include structs.asm
-	include variables.asm
+;; Variable data	
+.data
+include strings.asm
+include structs.asm
+include variables.asm
 
-	;; Executable code
-	.code
+;; Executable code
+.code
 
-	;; Program main execution point
-	align qword
-	Startup proc
-
-	;; Needed for WinCall
-	local		holder:qword
+;; Program main execution point
+align qword
+Startup proc
+	local		holder: qword
 
 	;; hInstance = GetModuleHandle(NULL);
 	xor		rcx, rcx
@@ -54,21 +52,116 @@
 	mov		rcx, hInstance
 	call		WinMain
 	ret
-	Startup endp
+Startup endp
 
-	WinMain proc
-	local		holder:qword
+WinMain proc
+	local		x: qword
 
+	lea		r8, program_logo
+	mov		r9, sizeof program_logo	
+	call		PrintStr
+
+	lea		r8, string
+	mov		r9, sizeof string
+	call		PrintStr
+
+	lea		r8, str1
+	mov		r9, sizeof str1
+	call		PrintStr
+
+	lea		r8, str2
+	mov		r9, sizeof str2
+	call		PrintStr
+
+	lea		rsi, str1
+	lea		rdi, str2
+	mov		rcx, sizeof str2
+	call		StrEquals
+
+	;mov		rax, 0
+	ret
+WinMain endp
+
+;; rax: bool PrintStr(string: r8 char*, len: r9 u64)
+PrintStr proc
+	local		holder: qword
+
+	; return WriteConsole(
+	;	GetStdHandle(STD_OUTPUT_HANDLE),
+	;	string, len, nullptr, nullptr);
 	mov		rax, STD_OUTPUT_HANDLE
 	WinCall		GetStdHandle, rax
-
-	lea		r9, printString
-	mov		r10, sizeof printString 
-	WinCall		WriteConsole, rax, r9, r10, 0, 0
+	WinCall	WriteConsole, rax, r8, r9, 0, 0
 	
-	mov		rax, 5
+	mov		rax, 0
+	ret	
+PrintStr endp
+
+; rcx = len of both strings
+; rsi = str1
+; rdi = str2
+; TODO: make this work properly
+StrEquals proc
+	; Compare bytes till not equal
+still_comparing:
+	dec		rcx
+	jrcxz		equal		; If rcx = 0, string matches
+	cmp	  	ptr [rsi], ptr [rdi]
+	inc		rsi
+	inc		rdi
+	je		still_comparing
+	jne		not_equal
+equal:
+	mov		rax, 1
 	ret
-	WinMain endp
+not_equal:
+	mov		rax, 0
+	ret
+StrEquals endp
+
+end
+
+
+; assume(is_valid_ptr(input_text))
+; assume(is_valid_ptr(output_text))
+; assume(input_text_size >= output_text_size)
+; try_extract_valid_chars(
+;	 input_text: rcx mut char*, input_text_size: rcx mut char*,
+;	 output_text: r8 mut char*, output_text_size: r9 mut char*,
+; ) {
+;    const_state: struct {
+;    	 input_text_start = input_text,
+;	 input_text_size  = input_text_size,
+;	 input_text_end   = input_text + sizeof char * input_text_size,
+;
+;   	 output_text_start = output_text,
+;	 output_text_size  = output_text_size,
+;	 output_text_end   = output_text + sizeof char * output_text_size,
+;    }
+;
+;    var_state: struct {
+;        iptr: mut char* = input_text
+;        optr: mut char* = output_text
+;	 operation_status: u64 = false
+;    }
+;
+;    loop {
+;      	  try_extract_valid_chars_single_step(&state, &mut var_state)
+;      	  if state.should_break break
+;    }
+
+; // Ignore multi line comment
+; - Go through the bytes of input
+;   - On multi line comment detection, employ nested semantics
+;   - On single line comment detection, employ non-nested semantics
+;   - Otherwise
+;     - If character is whitespace or newline or tab, ignore
+;     - If character is valid hex character, copy to output
+;     - Else report offending
+;       - byte, char representaion, location
+;       - Set failure byte
+; - If not failed, write bytes to output
+
 
 ; // Overall program operation
 ; // It is implied that after every line there is some mechanism
@@ -93,30 +186,3 @@
 ; output_file_handle = try_open_binary_file(output_filename)
 ; try_writing_data_to_file(output_file_handle)
 
-; assume(is_valid_ptr(input_text))
-; assume(is_valid_ptr(output_text))
-; assume(input_text_size >= output_text_size)
-; try_extract_valid_chars(input_text, input_text_size,
-;                         output_text, output_text_size)
-;   input_end_ptr = input_text + sizeof char * input_text_size
-;   output_end_ptr = output_text + sizeof char * output_text_size
-;   iptr = input_text
-;   optr = output_text
-;
-;   // insert other state here
-;
-;   loop
-;      should_break = try_extract_valid_chars_single_step(state, iptr, optr)
-;
-; - Go through the bytes of input
-;   - On multi line comment detection, employ nested semantics
-;   - On single line comment detection, employ non-nested semantics
-;   - Otherwise
-;     - If character is whitespace or newline or tab, ignore
-;     - If character is valid hex character, copy to output
-;     - Else report offending
-;       - byte, char representaion, location
-;       - Set failure byte
-; - If not failed, write bytes to output
-
-	end
