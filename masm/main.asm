@@ -55,7 +55,7 @@ Startup proc
 Startup endp
 
 WinMain proc
-	local		x: qword
+	local		does_match: byte
 
 	lea		r8, program_logo
 	mov		r9, sizeof program_logo	
@@ -78,7 +78,19 @@ WinMain proc
 	mov		rcx, sizeof str2
 	call		StrEquals
 
-	;mov		rax, 0
+	; print "T" if matches, "F" otherwise
+	cmp		rax, 0
+	je 		does_not_match
+	mov		does_match, 84
+	jmp		print
+does_not_match:
+	mov		does_match, 70
+print:
+	lea		r8, does_match
+	mov		r9, 1
+	call		PrintStr
+
+	mov		rax, 0
 	ret
 WinMain endp
 
@@ -93,29 +105,36 @@ PrintStr proc
 	WinCall		GetStdHandle, rax
 	WinCall	WriteConsole, rax, r8, r9, 0, 0
 	
-	mov		rax, 0
-	ret	
+	mov		rax, 1
+	ret
 PrintStr endp
 
 ; rcx = len of both strings
 ; rsi = str1
 ; rdi = str2
-; TODO: make this work properly
 StrEquals proc
-	; Compare bytes till not equal
-still_comparing:
-	dec		rcx
-	jrcxz		equal		; If rcx = 0, string matches
-	cmp	  	ptr [rsi], ptr [rdi]
+loop_label:
+	; Decrement and check counter
+	dec		rcx	
+	jrcxz		equal
+	
+	; Compare chars
+	mov		dl, byte ptr [rsi]
+	cmp		dl, byte ptr [rdi]
+	jne		not_equal
+	
 	inc		rsi
 	inc		rdi
-	je		still_comparing
-	jne		not_equal
-equal:
-	mov		rax, 1
-	ret
+	jmp		loop_label
+
 not_equal:
 	mov		rax, 0
+	jmp		finished
+	
+equal:
+	mov		rax, -1
+	
+finished:
 	ret
 StrEquals endp
 
