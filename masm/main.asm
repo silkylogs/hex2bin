@@ -1,15 +1,14 @@
 ;; Emacs likes to get funky with .asm files, just use master-mode
 
 ;; Constant data
-include program_constants.asm
-include external_includes.asm
 include macros.asm
-include external_structs.asm
+include external_includes.asm
 include windows_constants.asm
+include program_constants.asm
 
 ;; Variable data
 .data
-include strings.asm
+include external_structs.asm
 include structs.asm
 include variables.asm
 
@@ -54,35 +53,6 @@ WinMain proc
 	local		does_match:byte
 	lea		r8, consts.program_logo
 	mov		r9, sizeof consts.program_logo
-	call		PrintStr
-
-	lea		r8, consts.string
-	mov		r9, sizeof consts.string
-	call		PrintStr
-
-	lea		r8, consts.str1
-	mov		r9, sizeof consts.str1
-	call		PrintStr
-
-	lea		r8, consts.str2
-	mov		r9, sizeof consts.str2
-	call		PrintStr
-
-	lea		rsi, consts.str1
-	lea		rdi, consts.str2
-	mov		rcx, sizeof consts.str2
-	call		StrEquals
-
-	; print "T" if matches, "F" otherwise
-	cmp		rax, 0
-	je 		does_not_match
-	mov		does_match, 84
-	jmp		print
-does_not_match:
-	mov		does_match, 70
-print:
-	lea		r8, does_match
-	mov		r9, 1
 	call		PrintStr
 
 	mov		rax, 0

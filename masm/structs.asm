@@ -1,32 +1,4 @@
-;; Windows related structs
-STARTUPINFO struct
-	; what is cbSize?
-	cb		qword	sizeof ( STARTUPINFO )
-	lpReserved	qword	?
-	lpDesktop	qword	?
-	lpTitle		qword	?
-	
-	dwX		dword	?
-	dwY		dword	?
-	dwXSize		dword	?
-	dwYSize		dword	?
-	dwXCountChars	dword	?
-	dwYCountChars	dword	?
-	dwFillAttribute	dword	?
-	dwFlags		dword	?
-	wShowWindow	word	?
-	
-	cbReserved2	word	3 dup ( ? )
-	lpReserved2	qword	?
-	
-	hStdInput	qword	?
-	hStdOutput	qword	?
-	hStdError	qword	?
-	STARTUPINFO ends
-
-startup_info STARTUPINFO <>
-
-;; Program structs
+;; Program specific structs
 
 ; initialized_once_state: struct {
 ; 	input_text_start = input_text,
