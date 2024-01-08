@@ -50,7 +50,6 @@ Startup endp
 
 align qword
 WinMain proc
-	local		does_match:byte
 	lea		r8, consts.program_logo
 	mov		r9, sizeof consts.program_logo
 	call		PrintStr
@@ -59,25 +58,32 @@ WinMain proc
 	ret
 WinMain endp
 
+
+
 end
 
 ; assume(is_valid_ptr(input_text))
 ; assume(is_valid_ptr(output_text))
 ; assume(input_text_size >= output_text_size)
-; bool try_extract_valid_chars(
+; void TryExtractValidChars(
 ;	input_text:  rsi mut char*, input_text_size:  rcx mut char*,
 ;	output_text: rdi mut char*, output_text_size: rdx mut char*,
 ; ) {
-;
-;    while operation_status == ongoing {
-;      	  try_extract_valid_chars_single_step(&state, &mut var_state)
-;    }
-;
-;    return operation_status != ended_successfully
+;	InitializeConsts(&init_consts, &operation_status)
+;	if operation_status != ok { return }
+;    
+;	while operation_status == ongoing {
+;      	      try_extract_valid_chars_single_step(&state, &mut var_state)
+;    	}
+; }
+TryExtractValidChars proc
+	; Initialize write once constants
+	ret
+TryExtractValidChars endp
+
 
 ; assume(state != NULL)
 ; assume(var_state != NULL)
-;
 ; // Ignore multi line comment
 ; - Go through the bytes of input
 ;   - On multi line comment detection, employ nested semantics
