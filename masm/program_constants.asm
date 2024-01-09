@@ -1,3 +1,6 @@
-;;; Application specific constants
+; Application specific constants
 
-	lr_cur	equ	LR_SHARED OR LR_VGACOLLOR OR LR_DEFAULTSIZE
+;; operation status enum
+STATUS_UNSPECIFIED_ERR	equ 00h
+STATUS_OK		equ 01h
+STATUS_ONGOING		equ 02h

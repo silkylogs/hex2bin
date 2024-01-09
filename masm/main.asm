@@ -54,33 +54,71 @@ WinMain proc
 	mov		r9, sizeof consts.program_logo
 	call		PrintStr
 
+	; Print input
+	lea		r8, vars.string_scratch_space
+	mov		r9, sizeof vars.string_scratch_space
+	call		Println
+	
+	lea		rsi, vars.string_scratch_space
+	mov		rcx, sizeof vars.string_scratch_space	
+	lea		rdi, vars.string_scratch_space
+	mov		rdx, sizeof vars.string_scratch_space
+	call		TryExtractValidChars
+
+	; Print output
+	lea		r8, vars.string_scratch_space
+	mov		r9, sizeof vars.string_scratch_space
+	call		Println
+
 	mov		rax, 0
 	ret
 WinMain endp
 
 
 
-end
-
-; assume(is_valid_ptr(input_text))
-; assume(is_valid_ptr(output_text))
-; assume(input_text_size >= output_text_size)
+; assume is_valid_ptr(input_text)
+; assume is_valid_ptr(output_text)
+; assume input_text_size >= output_text_size
 ; void TryExtractValidChars(
 ;	input_text:  rsi mut char*, input_text_size:  rcx mut char*,
-;	output_text: rdi mut char*, output_text_size: rdx mut char*,
-; ) {
-;	InitializeConsts(&init_consts, &operation_status)
-;	if operation_status != ok { return }
-;    
-;	while operation_status == ongoing {
-;      	      try_extract_valid_chars_single_step(&state, &mut var_state)
-;    	}
-; }
+;	output_text: rdi mut char*, output_text_size: rdx mut char*)
 TryExtractValidChars proc
-	; Initialize write once constants
+	mov	     init_consts.input_text, rsi
+	mov	     init_consts.output_text, rdi
+
+	mov	     vars.input_text_size, rcx
+	mov	     vars.output_text_size, rdx
+	mov	     vars.in_ptr, rsi
+	mov	     vars.out_ptr, rdi
+	mov	     vars.operation_status, STATUS_ONGOING
+	
+loop_label:
+	call	     TryExtractValidCharsSingleStep
+	cmp	     vars.operation_status, STATUS_ONGOING
+	je	     loop_label
+	
 	ret
 TryExtractValidChars endp
 
+; void TryExtractValidCharsSingleStep(void)
+TryExtractValidCharsSingleStep proc
+	; Decrement counters and check wether we need to leave
+	dec	     vars.output_text_size
+	dec	     vars.input_text_size
+	
+	cmp	     vars.output_text_size, 0
+	jeq	     leave
+	cmp	     vars.input_text_size, 0
+	jeq	     leave
+
+	; Check wether in ptr points to a multi line comment
+
+	inc	     vars.in_ptr
+	inc	     vars.out_ptr
+
+	mov	     vars.operation_status, 0
+	ret
+TryExtractValidCharsSingleStep endp
 
 ; assume(state != NULL)
 ; assume(var_state != NULL)
@@ -95,7 +133,6 @@ TryExtractValidChars endp
 ;       - byte, char representaion, location
 ;       - Set failure byte
 ; - If not failed, write bytes to output
-
 
 ; // Overall program operation
 ; // It is implied that after every line there is some mechanism
@@ -119,3 +156,5 @@ TryExtractValidChars endp
 ;
 ; output_file_handle = try_open_binary_file(output_filename)
 ; try_writing_data_to_file(output_file_handle)
+
+end

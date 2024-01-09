@@ -10,23 +10,16 @@
 ; 	output_text_end   = output_text + sizeof char * output_text_size,
 ; }
 initialized_once_state_t struct
-	input_text_start	qword	0
-	input_text_size		qword	0
-	input_text_end		qword	0
-
-	output_text_start	qword	0
-	output_text_size	qword	0
-	output_text_end		qword	0
+	input_text		qword	0
+	output_text		qword	0
 initialized_once_state_t ends
 init_consts initialized_once_state_t <>
 
 global_const_state_t struct
 program_logo	byte 'Hex2Bin MASM edition v0.1.0 for Windows x64', 0dh, 0ah,
 		     'Console printing functionality ok', 0dh, 0ah, 0h
-			
-string		byte 'Comparing strings:', 0dh, 0ah, 0h
-str1		byte 'Hello, world!', 0dh, 0ah, 0h
-str2		byte 'Hello, world!', 0dh, 0ah, 0h
+
+newline_literal		     byte  0dh, 0ah, 0
 
 multiline_cmt_start  	     byte '/*', 0
 multiline_cmt_start_size     qword 2
@@ -47,8 +40,14 @@ consts global_const_state_t <>
 ;	comment_nest_level = 0,
 ; }
 var_state_t struct
+	string_scratch_space	byte	'00 00 00 00', 0
+	
+	input_text_size		qword	0
+	output_text_size	qword	0
+	
 	in_ptr			qword	0
 	out_ptr			qword	0
+	
 	operation_status	qword	0
 	comment_nest_level	qword	0
 var_state_t ends

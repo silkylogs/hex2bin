@@ -24,7 +24,19 @@ PrintStr proc
 	ret
 PrintStr endp
 
+;; bool Println(string: r8 char*, len: r9 u64)
+;; Prints (len - 1) characters, then prints a newline
+align qword
+Println proc
+	call	PrintStr
+	lea	r8, consts.newline_literal
+	mov	r9, sizeof consts.newline_literal
+	call	PrintStr
+	ret
+Println endp
+
 ;; bool StrEquals(str1: rsi char*, str2: rdi char *, len: rcx u64)
+align qword
 StrEquals proc
 loop_label:
 	; Decrement and check counter
@@ -50,3 +62,4 @@ equal:
 finished:
 	ret
 StrEquals endp
+
