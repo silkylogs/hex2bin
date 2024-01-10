@@ -101,9 +101,9 @@ TryExtractValidChars endp
 TryExtractValidCharsSingleStep proc
 	;; Check wether we need to leave
 	cmp	     rcx, 0
-	je	     exit_loop
+	je	     exit_normal
 	cmp	     rdx, 0
-	je	     exit_loop
+	je	     exit_no_memory
 
 	;; Filter characters
 	; Char is whitespace (space or tab)
@@ -124,56 +124,69 @@ TryExtractValidCharsSingleStep proc
 	jne	     add_this_char
 
 	; Char is start of multi line comment
-	; Char is start of single line comment
-	; Invalid character
-	mov	     vars.operation_status, STATUS_INVALID_CHAR
-	jmp	     return_from_func
+	call	     IsInMultiLineComment
+	cmp	     rax, 0
+	jne	     ignore_this_char
 
+	; Char is start of single line comment
+	call	     IsInSingleLineComment
+	cmp	     rax, 0
+	jne	     ignore_this_char
+	
+	; Invalid character
+	jmp	     exit_invalid_char
 
 ignore_this_char:
 	inc	     rsi
 	dec	     rcx
-	jmp	     return_from_func
+	jmp	     continue_loop
 
 add_this_char:
-	mov	     rax, [rsi]
-	mov	     [rdi], rax
+	mov	     al, byte ptr [rsi]
+	mov	     byte ptr[rdi], al
 	
 	inc	     rsi
 	inc	     rdi
 	
 	dec	     rcx
 	dec	     rdx
-	jmp	     return_from_func
+	jmp	     continue_loop
 
-exit_loop:
+
+	;; Loop exit handling
+exit_invalid_char:
+	mov	     vars.operation_status, STATUS_INVALID_CHAR
+	jmp	     return_from_func
+exit_normal:
 	mov	     vars.operation_status, STATUS_EXITED_NORMALLY
 	jmp	     return_from_func
+exit_no_memory:
+	mov	     vars.operation_status, STATUS_OUTPUT_NO_MEMORY
+	jmp	     return_from_func
+
 continue_loop:
 	mov	     vars.operation_status, STATUS_ONGOING
-	jmp	     return_from_func
 return_from_func:
 	ret
 TryExtractValidCharsSingleStep endp
 
+; bool IsValidHexChar(rsi: char*)
 IsValidHexChar proc
 	mov	     rax, 1
 	ret
 IsValidHexChar endp
 
-; assume(state != NULL)
-; assume(var_state != NULL)
-; // Ignore multi line comment
-; - Go through the bytes of input
-;   - On multi line comment detection, employ nested semantics
-;   - On single line comment detection, employ non-nested semantics
-;   - Otherwise
-;     - If character is whitespace or newline or tab, ignore
-;     - If character is valid hex character, copy to output
-;     - Else report offending
-;       - byte, char representaion, location
-;       - Set failure byte
-; - If not failed, write bytes to output
+;; TODO
+IsInMultiLineComment proc
+	mov	     rax, 1
+	ret
+IsInMultiLineComment endp
+
+;; TODO
+IsInSingleLineComment proc
+	mov	     rax, 1
+	ret
+IsInSingleLineComment endp
 
 ; // Overall program operation
 ; // It is implied that after every line there is some mechanism

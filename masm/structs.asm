@@ -42,7 +42,9 @@ consts global_const_state_t <>
 ;	comment_nest_level = 0,
 ; }
 var_state_t struct
-	source_string		byte '01 23 45 67 89', 0
+	source_string		byte '01 23 45 67 89',
+				CHAR_TAB, 'ab cd ef',
+				CHAR_TAB, 'AB CD EF', 0
 	dest_string		byte 040h dup ( 025h )
 	operation_status	qword 0
 	comment_nest_level	qword 0
