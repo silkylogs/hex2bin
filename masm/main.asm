@@ -55,19 +55,19 @@ WinMain proc
 	call		PrintStr
 
 	; Print input
-	lea		r8, vars.string_scratch_space
-	mov		r9, sizeof vars.string_scratch_space
+	lea		r8, vars.source_string
+	mov		r9, sizeof vars.source_string
 	call		Println
-	
-	lea		rsi, vars.string_scratch_space
-	mov		rcx, sizeof vars.string_scratch_space	
-	lea		rdi, vars.string_scratch_space
-	mov		rdx, sizeof vars.string_scratch_space
+
+	lea		rsi, vars.source_string
+	mov		rcx, sizeof vars.source_string	
+	lea		rdi, vars.dest_string
+	mov		rdx, sizeof vars.dest_string
 	call		TryExtractValidChars
 
 	; Print output
-	lea		r8, vars.string_scratch_space
-	mov		r9, sizeof vars.string_scratch_space
+	lea		r8, vars.dest_string
+	mov		r9, sizeof vars.dest_string
 	call		Println
 
 	mov		rax, 0
@@ -85,40 +85,81 @@ WinMain endp
 TryExtractValidChars proc
 	mov	     init_consts.input_text, rsi
 	mov	     init_consts.output_text, rdi
+	mov	     init_consts.input_text_size, rcx
+	mov	     init_consts.output_text_size, rdx
 
-	mov	     vars.input_text_size, rcx
-	mov	     vars.output_text_size, rdx
-	mov	     vars.in_ptr, rsi
-	mov	     vars.out_ptr, rdi
 	mov	     vars.operation_status, STATUS_ONGOING
-	
 loop_label:
 	call	     TryExtractValidCharsSingleStep
 	cmp	     vars.operation_status, STATUS_ONGOING
 	je	     loop_label
-	
+
 	ret
 TryExtractValidChars endp
 
-; void TryExtractValidCharsSingleStep(void)
+; void TryExtractValidCharsSingleStep(rsi, rcx, rdi, rdx)
 TryExtractValidCharsSingleStep proc
-	; Decrement counters and check wether we need to leave
-	dec	     vars.output_text_size
-	dec	     vars.input_text_size
+	;; Check wether we need to leave
+	cmp	     rcx, 0
+	je	     exit_loop
+	cmp	     rdx, 0
+	je	     exit_loop
+
+	;; Filter characters
+	; Char is whitespace (space or tab)
+	cmp	     byte ptr [rsi], CHAR_TAB
+	je	     ignore_this_char
+	cmp	     byte ptr [rsi], CHAR_SPACE
+	je	     ignore_this_char
+
+	; Char is newline character (\r or \n)
+	cmp	     byte ptr [rsi], CHAR_CARRIAGE_RETURN
+	je	     ignore_this_char
+	cmp	     byte ptr [rsi], CHAR_NEWLINE
+	je	     ignore_this_char
+
+	; Char is valid hexadecimal character (0-9, a-f, A-F)
+	call	     IsValidHexChar
+	cmp	     rax, 0
+	jne	     add_this_char
+
+	; Char is start of multi line comment
+	; Char is start of single line comment
+	; Invalid character
+	mov	     vars.operation_status, STATUS_INVALID_CHAR
+	jmp	     return_from_func
+
+
+ignore_this_char:
+	inc	     rsi
+	dec	     rcx
+	jmp	     return_from_func
+
+add_this_char:
+	mov	     rax, [rsi]
+	mov	     [rdi], rax
 	
-	cmp	     vars.output_text_size, 0
-	jeq	     leave
-	cmp	     vars.input_text_size, 0
-	jeq	     leave
+	inc	     rsi
+	inc	     rdi
+	
+	dec	     rcx
+	dec	     rdx
+	jmp	     return_from_func
 
-	; Check wether in ptr points to a multi line comment
-
-	inc	     vars.in_ptr
-	inc	     vars.out_ptr
-
-	mov	     vars.operation_status, 0
+exit_loop:
+	mov	     vars.operation_status, STATUS_EXITED_NORMALLY
+	jmp	     return_from_func
+continue_loop:
+	mov	     vars.operation_status, STATUS_ONGOING
+	jmp	     return_from_func
+return_from_func:
 	ret
 TryExtractValidCharsSingleStep endp
+
+IsValidHexChar proc
+	mov	     rax, 1
+	ret
+IsValidHexChar endp
 
 ; assume(state != NULL)
 ; assume(var_state != NULL)
