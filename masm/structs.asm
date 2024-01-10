@@ -31,20 +31,28 @@ multiline_cmt_end_size	     qword 2
 singleline_cmt_start	     byte '//', 0
 singleline_cmt_start_size    qword 2
 singleline_cmt_end	     byte 00ah, 0
-singleline_cmt_end_size	     qword 2
 global_const_state_t ends
 consts global_const_state_t <>
 
-; var_state: struct {
-;	iptr: mut char* = input_text
-;	optr: mut char* = output_text
-;	operation_status: u64 enum = ongoing
-;	comment_nest_level = 0,
-; }
+error_strings_collection struct
+normal byte 'String extraction successful', 0
+unknown byte 'Program has encountered an unspecified error ',
+    	     'while extracting valid characters', 0
+invalid_char byte 'Program has detected an invalid character in input: ', 0
+no_memory byte 'Program has ran out of memory to write filtered characters to ',
+    	       'while extracting valid characters', 0
+impossible_status byte 'Program has reached an impossible state ',
+    	     	       'while extracting valid characters', 0
+error_strings_collection ends
+estrs error_strings_collection <>
+
 var_state_t struct
-	source_string		byte '01 23 45 67 89',
-				CHAR_TAB, 'ab cd ef',
-				CHAR_TAB, 'AB CD EF', 0
+	source_string		byte 'abcdefghijklmnopqrstuvwxyz', CHAR_TAB,
+				     'ABCDEFGHIJKLMNOPQRSTUVWXYZ', CHAR_TAB,
+				     '0123456789', 0
+	;source_string		byte 'abc de f   ', CHAR_TAB,
+	;			     'A BC DEF  ', CHAR_TAB,
+	;			     '01 23 45 67 89', 0
 	dest_string		byte 040h dup ( 025h )
 	operation_status	qword 0
 	comment_nest_level	qword 0

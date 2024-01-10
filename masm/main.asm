@@ -60,7 +60,7 @@ WinMain proc
 	call		Println
 
 	lea		rsi, vars.source_string
-	mov		rcx, sizeof vars.source_string	
+	mov		rcx, sizeof vars.source_string
 	lea		rdi, vars.dest_string
 	mov		rdx, sizeof vars.dest_string
 	call		TryExtractValidChars
@@ -83,29 +83,110 @@ WinMain endp
 ;	input_text:  rsi mut char*, input_text_size:  rcx mut char*,
 ;	output_text: rdi mut char*, output_text_size: rdx mut char*)
 TryExtractValidChars proc
-	mov	     init_consts.input_text, rsi
-	mov	     init_consts.output_text, rdi
-	mov	     init_consts.input_text_size, rcx
-	mov	     init_consts.output_text_size, rdx
+	mov		init_consts.input_text, rsi
+	mov		init_consts.output_text, rdi
+	mov		init_consts.input_text_size, rcx
+	mov		init_consts.output_text_size, rdx
 
-	mov	     vars.operation_status, STATUS_ONGOING
+	mov		vars.operation_status, STATUS_ONGOING
 loop_label:
-	call	     TryExtractValidCharsSingleStep
-	cmp	     vars.operation_status, STATUS_ONGOING
-	je	     loop_label
+	call		TryExtractValidCharsSingleStep
+	cmp	     	vars.operation_status, STATUS_ONGOING
+	je	     	loop_label
+
+	call	     	ReportCharExtractionErrors
 
 	ret
 TryExtractValidChars endp
 
+; bool ReportCharExtractionErrors(rsi, operation_status)
+ReportCharExtractionErrors proc
+	cmp		vars.operation_status, STATUS_EXITED_NORMALLY
+	je		print_normal
+
+	cmp		vars.operation_status, STATUS_UNKNOWN_ERROR
+	je		print_unknown_error
+
+	cmp		vars.operation_status, STATUS_INVALID_CHAR
+	je		print_invalid_char
+
+	cmp		vars.operation_status, STATUS_OUTPUT_NO_MEMORY
+	je		print_no_memory
+
+	cmp		vars.operation_status, STATUS_ONGOING
+	je		print_impossible_status
+
+print_normal:
+	lea		r8, estrs.normal
+	mov		r9, sizeof estrs.normal
+	call		PrintLn
+	jmp		retlabel
+
+print_unknown_error:
+	lea		r8, estrs.unknown
+	mov		r9, sizeof estrs.unknown
+	call		PrintLn
+	jmp		retlabel
+	
+print_invalid_char:
+	lea		r8, estrs.invalid_char
+	mov		r9, sizeof estrs.invalid_char
+	call		PrintStr
+	call		PrintInputCursorDetails
+	
+	jmp		retlabel
+	
+print_no_memory:
+	lea		r8, estrs.no_memory
+	mov		r9, sizeof estrs.no_memory
+	call		PrintLn
+	jmp		retlabel
+	
+print_impossible_status:
+	lea		r8, estrs.impossible_status
+	mov		r9, sizeof estrs.impossible_status
+	call		PrintLn
+	jmp		retlabel
+	
+retlabel:
+	ret
+ReportCharExtractionErrors endp
+
+; Prints what rsi is pointing at
+; TODO: print location information (line and column number)
+PrintInputCursorDetails proc
+	local		rsi_char: byte
+
+	mov		al, byte ptr [rsi]
+	mov	     	rsi_char, al
+	lea		r8, rsi_char
+	mov		r9, sizeof rsi_char
+	call		PrintlnSized
+	
+	nop
+	ret
+PrintInputCursorDetails endp
+
+; This exists to coerce emacs into indenting properly
+FunctionThatDoesNothing proc
+	mov	     	rax, rax
+	nop
+	ret
+FunctionThatDoesNothing endp
+
 ; void TryExtractValidCharsSingleStep(rsi, rcx, rdi, rdx)
 TryExtractValidCharsSingleStep proc
 	;; Check wether we need to leave
-	cmp	     rcx, 0
-	je	     exit_normal
-	cmp	     rdx, 0
-	je	     exit_no_memory
+	cmp	     	rcx, 0
+	je	     	exit_normal
+	cmp	     	rdx, 0
+	je	     	exit_no_memory
 
 	;; Filter characters
+	; Char is null terminator
+	cmp	     byte ptr [rsi], 0
+	je	     exit_normal
+
 	; Char is whitespace (space or tab)
 	cmp	     byte ptr [rsi], CHAR_TAB
 	je	     ignore_this_char
@@ -132,7 +213,7 @@ TryExtractValidCharsSingleStep proc
 	call	     IsInSingleLineComment
 	cmp	     rax, 0
 	jne	     ignore_this_char
-	
+
 	; Invalid character
 	jmp	     exit_invalid_char
 
@@ -144,10 +225,10 @@ ignore_this_char:
 add_this_char:
 	mov	     al, byte ptr [rsi]
 	mov	     byte ptr[rdi], al
-	
+
 	inc	     rsi
 	inc	     rdi
-	
+
 	dec	     rcx
 	dec	     rdx
 	jmp	     continue_loop
@@ -171,20 +252,49 @@ return_from_func:
 TryExtractValidCharsSingleStep endp
 
 ; bool IsValidHexChar(rsi: char*)
+; Note: -- 0 .. 9 -- A .. F -- a .. f --
+; Dashes are invalid ranges
 IsValidHexChar proc
-	mov	     rax, 1
+	local	     zero_nine: byte
+	local	     upper_af: byte
+	local	     lower_af: byte
+
+is_zero_through_nine:
+	cmp	     byte ptr [rsi], '0'
+	setae	     zero_nine
+	cmp	     byte ptr [rsi], '9'
+	setbe	     al
+	and	     zero_nine, al
+
+is_upper_a_through_f:
+	cmp	     byte ptr [rsi], 'A'
+	setae	     upper_af
+	cmp	     byte ptr [rsi], 'F'
+	setbe	     al
+	and	     upper_af, al
+
+is_lower_a_through_f:
+	cmp	     byte ptr [rsi], 'a'
+	setae	     lower_af
+	cmp	     byte ptr [rsi], 'f'
+	setbe	     al
+	and	     lower_af, al
+
+	or	     al, zero_nine
+	or	     al, upper_af
+	or	     al, lower_af
 	ret
 IsValidHexChar endp
 
 ;; TODO
 IsInMultiLineComment proc
-	mov	     rax, 1
+	mov	     rax, 0
 	ret
 IsInMultiLineComment endp
 
 ;; TODO
 IsInSingleLineComment proc
-	mov	     rax, 1
+	mov	     rax, 0
 	ret
 IsInSingleLineComment endp
 

@@ -35,6 +35,17 @@ Println proc
 	ret
 Println endp
 
+;; bool Println(string: r8 char*, len: r9 u64)
+;; Prints (len) characters, then prints a newline
+align qword
+PrintlnSized proc
+	call	PrintStrSized
+	lea	r8, consts.newline_literal
+	mov	r9, sizeof consts.newline_literal
+	call	PrintStr
+	ret
+PrintlnSized endp
+
 ;; bool StrEquals(str1: rsi char*, str2: rdi char *, len: rcx u64)
 align qword
 StrEquals proc
