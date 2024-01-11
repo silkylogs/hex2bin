@@ -23,14 +23,7 @@ program_logo	byte 'Hex2Bin MASM edition v0.1.0 for Windows x64', 0dh, 0ah,
 
 newline_literal		     byte  0dh, 0ah, 0
 
-multiline_cmt_start  	     byte '/*', 0
-multiline_cmt_start_size     qword 2
-multiline_cmt_end    	     byte '*/', 0
-multiline_cmt_end_size	     qword 2
 
-singleline_cmt_start	     byte '//', 0
-singleline_cmt_start_size    qword 2
-singleline_cmt_end	     byte 00ah, 0
 global_const_state_t ends
 consts global_const_state_t <>
 

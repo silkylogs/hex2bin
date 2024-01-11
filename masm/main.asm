@@ -193,6 +193,12 @@ TryExtractValidCharsSingleStep proc
 	cmp	     byte ptr [rsi], CHAR_SPACE
 	je	     ignore_this_char
 
+	; Char is start of multi line comment
+	call	     DetectSkipMultiLineComment
+
+	; Char is start of single line comment
+	call	     DetectSkipSingleLineComment
+	
 	; Char is newline character (\r or \n)
 	cmp	     byte ptr [rsi], CHAR_CARRIAGE_RETURN
 	je	     ignore_this_char
@@ -203,16 +209,6 @@ TryExtractValidCharsSingleStep proc
 	call	     IsValidHexChar
 	cmp	     rax, 0
 	jne	     add_this_char
-
-	; Char is start of multi line comment
-	call	     IsInMultiLineComment
-	cmp	     rax, 0
-	jne	     ignore_this_char
-
-	; Char is start of single line comment
-	call	     IsInSingleLineComment
-	cmp	     rax, 0
-	jne	     ignore_this_char
 
 	; Invalid character
 	jmp	     exit_invalid_char
@@ -286,17 +282,66 @@ is_lower_a_through_f:
 	ret
 IsValidHexChar endp
 
-;; TODO
-IsInMultiLineComment proc
-	mov	     rax, 0
-	ret
-IsInMultiLineComment endp
+; Detects a multi-line comment, and upon success,
+; moves rsi until the end comment (nested)
+;; if *(short*)rsi == *(short*)"/*" {
+;; 	cmt_nest_level++;
+;; 	rsi += 2; rcx -= 2;
+;; } else return;
+;; if (rcx == 1) return;
+;; for ( ;(uint64)comment.nest_level != 0 && rcx != 0; ) {
+;; 	if (rcx == 1) return;
+;; 	if *(short*)rsi == *(short*)"/*" {
+;; 		cmt_nest_level++;
+;; 		rsi += 2; rcx -= 2;
+;; 		continue;
+;; 	}
+;; 	if *(short*)rsi == *(short*)"*/"
+;; 		cmt_nest_level--;
+;; 		rsi += 2; rcx -= 2;
+;; 		continue;
+;; 	}
+;; 	rsi++; rcx--;
+;; }
+;; if (comment.nest_level != 0) { PrintLn("Error: unterminated multi line comment") }
+DetectSkipMultiLineComment proc
+	local		cmt_nest_level: qword
 
-;; TODO
-IsInSingleLineComment proc
-	mov	     rax, 0
+	mov		two_char_space, 0
+	mov		cmt_nest_level, 0
+	
+	;; To prevent potentially reading from out of bounds memory
+	;; as each delimiter of multi line comments are two bytes long,
+	;; exit when rsi points to the last character
+	cmp		rcx, 1
+	je		skip_this_char
+	
+	cmp		word [rsi], MULTILINE_CMT_START
+	jne		skip_this_char
+	inc		cmt_nest_level
+	
+
+	;; loop start
+	
+	cmp		word [rsi], MULTILINE_CMT_START
+	je		increment_cmt_nest_level
+	
+	cmp		vars.comment_nest_level
+	jne		skip_this_char
+		
+	cmp		word [rsi], MULTILINE_CMT_END
+	je		decrement_cmt_nest_level
+	
+handle_rsi_at_last_char:
+func_return:
 	ret
-IsInSingleLineComment endp
+DetectSkipMultiLineComment endp
+
+;; Detects a singl
+DetectSkipSingleLineComment proc
+	mov		rax, 0
+	ret
+DetectSkipSingleLineComment endp
 
 ; // Overall program operation
 ; // It is implied that after every line there is some mechanism
