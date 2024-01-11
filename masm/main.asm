@@ -200,9 +200,9 @@ TryExtractValidCharsSingleStep proc
 	call	     DetectSkipSingleLineComment
 	
 	; Char is newline character (\r or \n)
-	cmp	     byte ptr [rsi], CHAR_CARRIAGE_RETURN
+	cmp	     byte ptr [rsi], CHAR_CR
 	je	     ignore_this_char
-	cmp	     byte ptr [rsi], CHAR_NEWLINE
+	cmp	     byte ptr [rsi], CHAR_NL
 	je	     ignore_this_char
 
 	; Char is valid hexadecimal character (0-9, a-f, A-F)
@@ -305,8 +305,6 @@ IsValidHexChar endp
 ;; if (comment.nest_level != 0) { PrintLn("Error: unterminated multi line comment") }
 DetectSkipMultiLineComment proc
 	local		cmt_nest_level: qword
-
-	mov		two_char_space, 0
 	mov		cmt_nest_level, 0
 	
 	;; To prevent potentially reading from out of bounds memory
@@ -315,7 +313,7 @@ DetectSkipMultiLineComment proc
 	cmp		rcx, 1
 	je		func_return
 	
-	cmp		word [rsi], MULTILINE_CMT_START
+	cmp		word ptr [rsi], MULTILINE_CMT_START
 	jne		skip_this_char
 	inc		cmt_nest_level
 	add		rsi, 2
@@ -326,7 +324,7 @@ loop_start:
 	je		func_return
 	
 check_multiline_cmt_start:	
-	cmp		word [rsi], MULTILINE_CMT_START
+	cmp		word ptr [rsi], MULTILINE_CMT_START
 	jne		check_multiline_cmt_end
 	inc		cmt_nest_level
 	add		rsi, 2
@@ -334,7 +332,7 @@ check_multiline_cmt_start:
 	jmp		next_char
 
 check_multiline_cmt_end:
-	cmp		word [rsi], MULTILINE_CMT_END
+	cmp		word ptr [rsi], MULTILINE_CMT_END
 	jne		skip_this_char
 	dec		cmt_nest_level
 	add		rsi, 2
@@ -345,6 +343,7 @@ next_char:
 	inc		rsi
 	dec		rax
 
+loop_exit_condition:
 	cmp		rcx, 0
 	je		print_unterminated_multiline_cmnt_and_exit
 	cmp		cmt_nest_level, 0
@@ -352,8 +351,8 @@ next_char:
 	jmp		loop_start
 
 print_unterminated_multiline_cmnt_and_exit:
-	mov		r8, errors.unterminated_multiline_cmnt
-	mov		r9, sizeof errors.unterminated_multiline_cmnt
+	lea		r8, byte ptr estrs.unterminated_multiline_cmnt
+	mov		r9, sizeof estrs.unterminated_multiline_cmnt
 	call		PrintLn
 func_return:
 	ret

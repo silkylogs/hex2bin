@@ -36,16 +36,19 @@ no_memory byte 'Program has ran out of memory to write filtered characters to ',
     	       'while extracting valid characters', 0
 impossible_status byte 'Program has reached an impossible state ',
     	     	       'while extracting valid characters', 0
+unterminated_multiline_cmnt byte 'Unterminated multi line comment detected', 0
 error_strings_collection ends
 estrs error_strings_collection <>
 
 var_state_t struct
-	source_string		byte 'abcdefghijklmnopqrstuvwxyz', CHAR_TAB,
-				     'ABCDEFGHIJKLMNOPQRSTUVWXYZ', CHAR_TAB,
-				     '0123456789', 0
-	;source_string		byte 'abc de f   ', CHAR_TAB,
-	;			     'A BC DEF  ', CHAR_TAB,
-	;			     '01 23 45 67 89', 0
+	;source_string		byte 'abcdefghijklmnopqrstuvwxyz', CHAR_TAB,
+	;			     'ABCDEFGHIJKLMNOPQRSTUVWXYZ', CHAR_TAB,
+	;			     '0123456789', 0
+	source_string byte 'abc de f', CHAR_TAB,
+		      	   'A BC DEF', CHAR_TAB,
+			   '01 23 45 67 89', CHAR_TAB,
+			   '/* This is a comment */', CHAR_TAB,
+			   '/* This is a /* nested */ comment */', 0
 	dest_string		byte 040h dup ( 025h )
 	operation_status	qword 0
 	comment_nest_level	qword 0
