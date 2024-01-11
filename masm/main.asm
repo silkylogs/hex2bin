@@ -284,12 +284,12 @@ IsValidHexChar endp
 
 ; Detects a multi-line comment, and upon success,
 ; moves rsi until the end comment (nested)
+;; if (rcx == 1) return;
 ;; if *(short*)rsi == *(short*)"/*" {
 ;; 	cmt_nest_level++;
 ;; 	rsi += 2; rcx -= 2;
 ;; } else return;
-;; if (rcx == 1) return;
-;; for ( ;(uint64)comment.nest_level != 0 && rcx != 0; ) {
+;; for ( ;(uint64)comment.nest_level != 0 && rcx != 0; rsi++, rcx--) {
 ;; 	if (rcx == 1) return;
 ;; 	if *(short*)rsi == *(short*)"/*" {
 ;; 		cmt_nest_level++;
@@ -301,7 +301,6 @@ IsValidHexChar endp
 ;; 		rsi += 2; rcx -= 2;
 ;; 		continue;
 ;; 	}
-;; 	rsi++; rcx--;
 ;; }
 ;; if (comment.nest_level != 0) { PrintLn("Error: unterminated multi line comment") }
 DetectSkipMultiLineComment proc
@@ -314,25 +313,48 @@ DetectSkipMultiLineComment proc
 	;; as each delimiter of multi line comments are two bytes long,
 	;; exit when rsi points to the last character
 	cmp		rcx, 1
-	je		skip_this_char
+	je		func_return
 	
 	cmp		word [rsi], MULTILINE_CMT_START
 	jne		skip_this_char
 	inc		cmt_nest_level
+	add		rsi, 2
+	sub		rcx, 2
 	
-
-	;; loop start
+loop_start:
+	cmp		rcx, 1
+	je		func_return
 	
+check_multiline_cmt_start:	
 	cmp		word [rsi], MULTILINE_CMT_START
-	je		increment_cmt_nest_level
-	
-	cmp		vars.comment_nest_level
-	jne		skip_this_char
-		
+	jne		check_multiline_cmt_end
+	inc		cmt_nest_level
+	add		rsi, 2
+	sub		rcx, 2
+	jmp		next_char
+
+check_multiline_cmt_end:
 	cmp		word [rsi], MULTILINE_CMT_END
-	je		decrement_cmt_nest_level
-	
-handle_rsi_at_last_char:
+	jne		skip_this_char
+	dec		cmt_nest_level
+	add		rsi, 2
+	sub		rcx, 2
+
+skip_this_char:
+next_char:
+	inc		rsi
+	dec		rax
+
+	cmp		rcx, 0
+	je		print_unterminated_multiline_cmnt_and_exit
+	cmp		cmt_nest_level, 0
+	je		func_return
+	jmp		loop_start
+
+print_unterminated_multiline_cmnt_and_exit:
+	mov		r8, errors.unterminated_multiline_cmnt
+	mov		r9, sizeof errors.unterminated_multiline_cmnt
+	call		PrintLn
 func_return:
 	ret
 DetectSkipMultiLineComment endp
