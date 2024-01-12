@@ -127,27 +127,27 @@ print_unknown_error:
 	mov		r9, sizeof estrs.unknown
 	call		PrintLn
 	jmp		retlabel
-	
+
 print_invalid_char:
 	lea		r8, estrs.invalid_char
 	mov		r9, sizeof estrs.invalid_char
 	call		PrintStr
 	call		PrintInputCursorDetails
-	
+
 	jmp		retlabel
-	
+
 print_no_memory:
 	lea		r8, estrs.no_memory
 	mov		r9, sizeof estrs.no_memory
 	call		PrintLn
 	jmp		retlabel
-	
+
 print_impossible_status:
 	lea		r8, estrs.impossible_status
 	mov		r9, sizeof estrs.impossible_status
 	call		PrintLn
 	jmp		retlabel
-	
+
 retlabel:
 	ret
 ReportCharExtractionErrors endp
@@ -162,7 +162,7 @@ PrintInputCursorDetails proc
 	lea		r8, rsi_char
 	mov		r9, sizeof rsi_char
 	call		PrintlnSized
-	
+
 	nop
 	ret
 PrintInputCursorDetails endp
@@ -198,7 +198,7 @@ TryExtractValidCharsSingleStep proc
 
 	; Char is start of single line comment
 	call	     DetectSkipSingleLineComment
-	
+
 	; Char is newline character (\r or \n)
 	cmp	     byte ptr [rsi], CHAR_CR
 	je	     ignore_this_char
@@ -284,52 +284,66 @@ IsValidHexChar endp
 
 ; Detects a multi-line comment, and upon success,
 ; moves rsi until the end comment (nested)
-;; if (rcx == 1) return;
-;; if *(short*)rsi == *(short*)"/*" {
-;; 	cmt_nest_level++;
-;; 	rsi += 2; rcx -= 2;
-;; } else return;
-;; for ( ;(uint64)comment.nest_level != 0 && rcx != 0; rsi++, rcx--) {
-;; 	if (rcx == 1) return;
-;; 	if *(short*)rsi == *(short*)"/*" {
-;; 		cmt_nest_level++;
-;; 		rsi += 2; rcx -= 2;
-;; 		continue;
-;; 	}
-;; 	if *(short*)rsi == *(short*)"*/"
-;; 		cmt_nest_level--;
-;; 		rsi += 2; rcx -= 2;
-;; 		continue;
-;; 	}
+
+;;void DetectSkipMultiLineCmt(char *&src, uint64_t &size){
+;;    uint64_t cmt_nest_lvl = 0;
+;;
+;;    if (size == 1) return;
+;;    if (*(uint16_t*)src == *(uint16_t*)"/*") {
+;;        cmt_nest_lvl++;
+;;        src += 2; size -= 2;
+;;    } else return;
+;;
+;;    while (true) {
+;; 	if (cmt_nest_lvl == 0 || size == 0) break;
+;;
+;;	if (size == 1) return;
+;;	if (*(uint16_t*)src == *(uint16_t*)"/*") {
+;;	    cmt_nest_lvl++;
+;;	    src += 2; size -= 2;
+;;	    continue;
+;;	}
+;;	if (*(uint16_t*)src == *(uint16_t*)"*/") {
+;;	    cmt_nest_lvl--;
+;;	    src += 2; size -= 2;
+;;	    continue;
+;;	}
+;;	src++; size--;
+;;	}
+;;   if (cmt_nest_lvl != 0) printf("Error: unterminated comment\n");
 ;; }
-;; if (comment.nest_level != 0) { PrintLn("Error: unterminated multi line comment") }
+;; Note: this proc is a mess
 DetectSkipMultiLineComment proc
 	local		cmt_nest_level: qword
 	mov		cmt_nest_level, 0
-	
+
 	;; To prevent potentially reading from out of bounds memory
 	;; as each delimiter of multi line comments are two bytes long,
 	;; exit when rsi points to the last character
 	cmp		rcx, 1
 	je		func_return
-	
+
 	cmp		word ptr [rsi], MULTILINE_CMT_START
-	jne		skip_this_char
+	jne		func_return
 	inc		cmt_nest_level
 	add		rsi, 2
 	sub		rcx, 2
-	
+
 loop_start:
+	cmp		rcx, 0
+	je		loop_exit
+	cmp		cmt_nest_level, 0
+	je		print_unterminated_multiline_cmnt_and_exit
 	cmp		rcx, 1
 	je		func_return
-	
-check_multiline_cmt_start:	
+
+check_multiline_cmt_start:
 	cmp		word ptr [rsi], MULTILINE_CMT_START
 	jne		check_multiline_cmt_end
 	inc		cmt_nest_level
 	add		rsi, 2
 	sub		rcx, 2
-	jmp		next_char
+	jmp		loop_start
 
 check_multiline_cmt_end:
 	cmp		word ptr [rsi], MULTILINE_CMT_END
@@ -337,19 +351,15 @@ check_multiline_cmt_end:
 	dec		cmt_nest_level
 	add		rsi, 2
 	sub		rcx, 2
+	jmp		loop_start
 
 skip_this_char:
 next_char:
 	inc		rsi
 	dec		rax
-
-loop_exit_condition:
-	cmp		rcx, 0
-	je		print_unterminated_multiline_cmnt_and_exit
-	cmp		cmt_nest_level, 0
-	je		func_return
 	jmp		loop_start
 
+loop_exit:
 print_unterminated_multiline_cmnt_and_exit:
 	lea		r8, byte ptr estrs.unterminated_multiline_cmnt
 	mov		r9, sizeof estrs.unterminated_multiline_cmnt

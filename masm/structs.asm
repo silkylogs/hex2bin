@@ -48,7 +48,8 @@ var_state_t struct
 		      	   'A BC DEF', CHAR_TAB,
 			   '01 23 45 67 89', CHAR_TAB,
 			   '/* This is a comment */', CHAR_TAB,
-			   '/* This is a /* nested */ comment */', 0
+			   '/* This is a /* nested */ comment */', 0dh, 0ah,
+			   '/* This comment is unterminated', 0
 	dest_string		byte 040h dup ( 025h )
 	operation_status	qword 0
 	comment_nest_level	qword 0
