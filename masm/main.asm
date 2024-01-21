@@ -57,14 +57,17 @@ Winmain proc
 	; Print input
 	lea		r8, vars.source_string
 	mov		r9, sizeof vars.source_string
-	call		PrintLineSized
+	call		PrintStrSized
+	call		PrintNewLine
 
+	; Remove later
 	;lea		rsi, vars.source_string
 	;mov		rcx, sizeof vars.source_string
 	;lea		rdi, vars.dest_string
 	;mov		rdx, sizeof vars.dest_string
 	;call		TryExtractValidChars
-	
+
+	; Intended
 	; call		TryExtractSingleLineComments
 	; call		TryExtractMultiLineComments
 	; call		RemoveWhiteSpace
@@ -72,14 +75,14 @@ Winmain proc
 	; call		ConvertHexCharsToBytes
 
 	lea		rsi, vars.source_string
-	mov		rcx, sizeof vars.source_string
-	call		PrintByteArrayHex
+	;mov		rcx, sizeof vars.source_string
+	call		PrintByteHex
 	call		PrintNewLine
 
 	; Print output
-	lea		r8, vars.dest_string
-	mov		r9, sizeof vars.dest_string
-	call		PrintLineSized
+	;lea		r8, vars.dest_string
+	;mov		r9, sizeof vars.dest_string
+	;call		PrintLineSized
 
 	mov		rax, 0
 	ret
