@@ -40,9 +40,10 @@ error_strings_collection ends
 estrs error_strings_collection <>
 
 var_state_t struct
-	source_string		byte 'abcdefghijklmnopqrstuvwxyz',
-				     'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-				     '0123456789', 0
+	source_string byte '0123456789',
+			   'abcdefghijklmnopqrstuvwxyz',
+			   'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 0
+				     
 	;source_string byte 'abc de f', CHAR_TAB,
 	;	      	   'A BC DEF', CHAR_TAB,
 	;		   '01 23 45 67 89', CHAR_TAB,
