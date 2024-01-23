@@ -94,9 +94,6 @@ print_starting_brace:
 	call		PrintStrSized
 
 print_byte_loop:
-	dec		rcx
-	jrcxz		print_ending_brace
-	
 	call		PrintByteHex
 	inc		rsi
 
@@ -105,6 +102,9 @@ print_byte_loop:
 	mov		r9, 1
 	call		PrintStrSized
 
+	dec		rcx
+	jrcxz		print_ending_brace
+	
 	jmp		print_byte_loop
 
 print_ending_brace:

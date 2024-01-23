@@ -75,7 +75,7 @@ Winmain proc
 	; call		ConvertHexCharsToBytes
 
 	lea		rsi, vars.source_string
-	mov		rcx, sizeof vars.source_string
+	mov		rcx, 1;sizeof vars.source_string
 	call		PrintByteArrayHex
 	call		PrintNewLine
 

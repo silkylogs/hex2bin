@@ -1,2 +1,2 @@
-	hInstance		qword	?
-	lpCmdLine		qword	?
+hInstance		qword	?
+lpCmdLine		qword	?
