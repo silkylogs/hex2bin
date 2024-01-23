@@ -60,22 +60,20 @@ Winmain proc
 	call		PrintStrSized
 	call		PrintNewLine
 
-	; Remove later
-	;lea		rsi, vars.source_string
-	;mov		rcx, sizeof vars.source_string
-	;lea		rdi, vars.dest_string
-	;mov		rdx, sizeof vars.dest_string
-	;call		TryExtractValidChars
-
 	; Intended
 	; call		TryExtractSingleLineComments
 	; call		TryExtractMultiLineComments
 	; call		RemoveWhiteSpace
 	; call		TryExtractHexChars
-	; call		ConvertHexCharsToBytes
 
 	lea		rsi, vars.source_string
-	mov		rcx, 1;sizeof vars.source_string
+	lea		rdi, vars.dest_string
+	mov		rcx, sizeof vars.source_string
+	mov		al, ah ; TODO: make the following function take in two chars at a time
+	call		ConvertHexCharsToBytes
+
+	lea		rsi, vars.dest_string
+	mov		rcx, sizeof vars.dest_string
 	call		PrintByteArrayHex
 	call		PrintNewLine
 
@@ -88,7 +86,7 @@ Winmain proc
 	ret
 WinMain endp
 
-;; bool StrEquals(str1: rsi char*, str2: rdi char *, len: rcx u64)
+; bool StrEquals(str1: rsi char*, str2: rdi char *, len: rcx u64)
 align qword
 StrEquals proc
 loop_label:
@@ -116,7 +114,57 @@ finished:
 	ret
 StrEquals endp
 
+; bool ConvertHexCharsToBytes(string ptr: rsi, string ptr: rdi, string len: rcx)
+; return early and return zero if *source not hex
+align qword
+ConvertHexCharsToBytes proc
+loop_label:
+	; Actual calculation
+	mov		al, byte ptr [rsi]
+	cmp		al, CHAR_ZERO
+	jb		not_hex_char
 
+	cmp		al, CHAR_LOWER_F
+	ja		not_hex_char
+
+	cmp		al, CHAR_NINE
+	ja		compare_uppercase_af
+
+	sub		al, CHAR_ZERO
+	jmp		write_to_rdi
+	
+compare_uppercase_af:
+	cmp		al, CHAR_UPPER_A
+	jb		not_hex_char
+	
+	cmp		al, CHAR_UPPER_F
+	ja		compare_lowercase_af
+
+	sub		al, 37h
+	jmp		write_to_rdi
+
+compare_lowercase_af:
+	cmp		al, CHAR_LOWER_A
+	jb		not_hex_char
+	sub		al, 57h
+	
+write_to_rdi:
+	mov		byte ptr [rdi], al
+
+	; Loop stuff
+	dec		rcx
+	inc		rdi
+	inc		rsi
+	jrcxz		successful_return
+	jmp		loop_label
+
+not_hex_char:
+	xor		rax, rax
+	ret
+successful_return:
+	mov		rax, 1
+	ret
+ConvertHexCharsToBytes endp
 ;-- Dead code ----------------------------------------------------
 
 ; assume is_valid_ptr(input_text)
