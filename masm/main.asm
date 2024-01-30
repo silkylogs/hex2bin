@@ -69,7 +69,7 @@ Winmain proc
 	lea		rsi, vars.source_string
 	lea		rdi, vars.dest_string
 	mov		rcx, sizeof vars.source_string
-	mov		al, ah ; TODO: make the following function take in two chars at a time
+	dec		rcx
 	call		ConvertHexCharsToBytes
 
 	lea		rsi, vars.dest_string
@@ -147,8 +147,8 @@ conv_lower_nibble:
 
 zero_lower_nibble:
 	and		al, 0f0h
-	dec		rcx
-	jmp		successful_return
+	mov		byte ptr [rdi], al
+	mov		rcx, 2
 
 next_char:
 	sub		rcx, 2
