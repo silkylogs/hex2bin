@@ -44,10 +44,10 @@ var_state_t struct
 	;		   'abcdefghijklmnopqrstuvwxyz',
 	;		   'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 0
 				     
-	source_string byte 'abcdef', 
+	source_string byte 'abcdef',
 		      	   'ABCDEF',
 			   '0123456789', 0
-	dest_string		byte 040h dup ( 025h )
+	dest_string		byte 040h dup ( 0cch )
 	operation_status	qword 0
 	comment_nest_level	qword 0
 var_state_t ends

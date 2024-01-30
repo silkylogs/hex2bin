@@ -116,43 +116,42 @@ StrEquals endp
 
 ; bool ConvertHexCharsToBytes(string ptr: rsi, string ptr: rdi, string len: rcx)
 ; return early and return zero if *source not hex
+; TODO: zero out last nibble if not provided
 align qword
 ConvertHexCharsToBytes proc
+	local		accumulator: byte
+	
 loop_label:
-	; Actual calculation
-	mov		al, byte ptr [rsi]
-	cmp		al, CHAR_ZERO
-	jb		not_hex_char
+	; Convert two hex chars at a time to bytes
+conv_upper_nibble:
+	call		ConvertHexCharToNibble
+	cmp		al, STATUS_INVALID_HEX_CHAR
+	je		not_hex_char
+	shl		al, 4
+	mov		accumulator, al
 
-	cmp		al, CHAR_LOWER_F
-	ja		not_hex_char
+	; Check wether to zero lower nibble
+	cmp		rcx, 1
+	je		zero_lower_nibble
 
-	cmp		al, CHAR_NINE
-	ja		compare_uppercase_af
-
-	sub		al, CHAR_ZERO
-	jmp		write_to_rdi
+conv_lower_nibble:
+	inc		rsi
+	call		ConvertHexCharToNibble
+	cmp		al, STATUS_INVALID_HEX_CHAR
+	je		not_hex_char
+	or		accumulator, al
+	mov		al, accumulator
 	
-compare_uppercase_af:
-	cmp		al, CHAR_UPPER_A
-	jb		not_hex_char
-	
-	cmp		al, CHAR_UPPER_F
-	ja		compare_lowercase_af
-
-	sub		al, 37h
-	jmp		write_to_rdi
-
-compare_lowercase_af:
-	cmp		al, CHAR_LOWER_A
-	jb		not_hex_char
-	sub		al, 57h
-	
-write_to_rdi:
 	mov		byte ptr [rdi], al
+	jmp		next_char
 
-	; Loop stuff
+zero_lower_nibble:
+	and		al, 0f0h
 	dec		rcx
+	jmp		successful_return
+
+next_char:
+	sub		rcx, 2
 	inc		rdi
 	inc		rsi
 	jrcxz		successful_return
@@ -165,6 +164,47 @@ successful_return:
 	mov		rax, 1
 	ret
 ConvertHexCharsToBytes endp
+
+
+; u8 ConvertHexCharToNibble(character: rsi char*)
+; returns STATUS_INVALID_HEX_CHAR if not a hex char
+; else returns the corresponding nibble
+ConvertHexCharToNibble proc
+	mov		al, byte ptr [rsi]
+	cmp		al, CHAR_ZERO
+	jb		not_hex_char
+
+	cmp		al, CHAR_LOWER_F
+	ja		not_hex_char
+
+	cmp		al, CHAR_NINE
+	ja		compare_uppercase_af
+
+	sub		al, CHAR_ZERO
+	jmp		return_nibble
+	
+compare_uppercase_af:
+	cmp		al, CHAR_UPPER_A
+	jb		not_hex_char
+	
+	cmp		al, CHAR_UPPER_F
+	ja		compare_lowercase_af
+
+	sub		al, 37h
+	jmp		return_nibble
+
+compare_lowercase_af:
+	cmp		al, CHAR_LOWER_A
+	jb		not_hex_char
+	sub		al, 57h
+	jmp		return_nibble
+
+not_hex_char:
+	mov		al, STATUS_INVALID_HEX_CHAR
+return_nibble:
+	ret
+ConvertHexCharToNibble endp
+
 ;-- Dead code ----------------------------------------------------
 
 ; assume is_valid_ptr(input_text)
