@@ -1,11 +1,12 @@
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 
 using usize = std::size_t;
 using i32 = std::int32_t;
 using u8 = std::uint8_t;
 using byte = std::byte;
+
+constexpr auto INVALID_HEX_CHAR = static_cast<char>(0xff);
 
 #include "windows_includes.cpp"
 #include "text.cpp"
@@ -30,12 +31,12 @@ void PrintNewline(void) {
 }
 
 // Returns 0xff if not a hex char
-std::optional<char> ConvNibbleToHex(u8 nibble) {
+char ConvNibbleToHex(u8 nibble) {
     if (nibble <= 0x9)
-	return std::make_optional('0' + static_cast<char>(nibble));
+	return '0' + static_cast<char>(nibble);
     if (nibble <= 0xf)
-	return std::make_optional('A' + static_cast<char>(nibble - 10));
-    return std::make_optional(static_cast<char>(0xff));
+	return 'A' + static_cast<char>(nibble - 10);
+    return static_cast<char>(INVALID_HEX_CHAR);
 }
 
 bool PrintByte(u8 b) {
@@ -43,8 +44,10 @@ bool PrintByte(u8 b) {
     u8 nibble_low = b & static_cast<u8>(0x0f);
     bool val_ok = true;
     
-    char char_high = ConvNibbleToHex(nibble_high).value_or('?');
-    char char_low = ConvNibbleToHex(nibble_low).value_or('?');
+    char char_high = ConvNibbleToHex(nibble_high);    
+    char char_low = ConvNibbleToHex(nibble_low);
+    if (char_low == INVALID_HEX_CHAR || char_high == INVALID_HEX_CHAR)
+	return false;
     
     PrintStringA(&char_high, 1);
     PrintStringA(&char_low, 1);
