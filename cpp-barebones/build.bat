@@ -37,30 +37,34 @@ set compiler_includes_flag=^
 
 REM Libraries
 set lib_kernel32="%kit_directory%\kernel32.lib"
-set lib_user32="%kit_directory%\user32.lib"
-set lib_winmm="%kit_directory%\winmm.lib"
-set libs=%lib_kernel32% %lib_user32% %lib_winmm%
+set libs=%lib_kernel32% 
 
 REM compiler flags
 set cc_flags=^
 %compiler_includes_flag% ^
 /nologo /c /utf-8 /std:c++latest ^
-/W4 /fp:fast /fp:except- /GR- /EHa- /Oi
+/W4 /fp:fast /fp:except- /GR- /EHa- /Oi /GL /GS-
 
+set linker_flags_1=^
+main.obj ..\resource.res %libs% /libpath:"%lib_dir_spectre%" ^
+/nologo /opt:ref /opt:noicf /largeaddressaware:no ^
+/entry:Startup /machine:x64 /debug:full ^
+/map /out:%executable_name% /PDB:main.pdb /subsystem:console ^
+/nodefaultlib
+
+set linker_flags_2=^
+main.obj ..\resource.res %libs% /libpath:"%lib_dir_spectre%" ^
+/nologo /opt:ref ^
+/entry:Startup /debug:none ^
+/map /out:%executable_name% /subsystem:console ^
+/nodefaultlib /LTCG /incremental:no
 
 mkdir bin
 pushd bin
 %resource_compiler% /nologo ..\resource.rc
 %compiler% %cc_flags% ..\main.cpp > %compiler_error_log%
+%linker% %linker_flags_2%
 
-REM note: To compile with LTO in MSVC (which is called LTCG),
-REM 	  /GL must be used when compiling and
-REM	  /LTCG must be used when linking
-%linker% ^
-main.obj ..\resource.res %libs% /libpath:"%lib_dir_spectre%" ^
-/nologo /opt:ref /opt:noicf /largeaddressaware:no ^
-/entry:main /machine:x64 /debug:full ^
-/map /out:%executable_name% /PDB:main.pdb /subsystem:console
 
 echo Errors from %compiler_error_log%, if any:
 type %compiler_error_log%
