@@ -42,8 +42,8 @@ set libs=%lib_kernel32%
 REM compiler flags
 set cc_flags=^
 %compiler_includes_flag% ^
-/nologo /c /utf-8 /std:c++latest ^
-/W4 /fp:fast /fp:except- /GR- /EHa- /Oi /GL /GS-
+/nologo /c /utf-8 /std:c++latest /Z7 ^
+/W4 /fp:fast /fp:except- /GR- /EHa- /Oi /GL /GS- /Gs999999999
 
 set linker_flags_1=^
 main.obj ..\resource.res %libs% /libpath:"%lib_dir_spectre%" ^
@@ -54,10 +54,10 @@ main.obj ..\resource.res %libs% /libpath:"%lib_dir_spectre%" ^
 
 set linker_flags_2=^
 main.obj ..\resource.res %libs% /libpath:"%lib_dir_spectre%" ^
-/nologo /opt:ref ^
-/entry:Startup /debug:none ^
+/nologo /opt:ref /opt:noicf /largeaddressaware:no ^
+/entry:Startup /machine:x64 /debug:full /PDB:main.pdb ^
 /map /out:%executable_name% /subsystem:console ^
-/nodefaultlib /LTCG /incremental:no
+/nodefaultlib /LTCG /incremental:no /stack:0x100000,0x100000
 
 mkdir bin
 pushd bin
