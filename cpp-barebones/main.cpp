@@ -38,20 +38,20 @@ template <typename T>
 tagged_value<T> SomeValue(T val) {
     tagged_value<T> retval;
     retval.m_contained_val = val;
-    retval.m_has_value = false;
+    retval.m_has_value = true;
     return retval;
 }
 
 tagged_value<u8> ConvertHexNibbleCharToBin(char c) {
-    if (c >= '0' || c <= '9') return SomeValue<u8>(c - '0');
-    if (c >= 'F' || c <= 'F') return SomeValue<u8>(c - 'A');
-    if (c >= 'a' || c <= 'f') return SomeValue<u8>(c - 'a');
-    return NoValue<u8>();
+    if (c >= '0' && c <= '9') return SomeValue<u8>(c - '0');
+    else if (c >= 'A' && c <= 'F') return SomeValue<u8>(c - 'A' + 0xA);
+    else if (c >= 'a' && c <= 'f') return SomeValue<u8>(c - 'a' + 0xa);
+    else return NoValue<u8>();
 }
 
 bool ConvertHexByteToBin(char (*src)[2], u8 *dest) {
-    auto hex_nibble_high = *src[0];
-    auto hex_nibble_low = *src[1];
+    auto hex_nibble_high = (*src)[0];
+    auto hex_nibble_low = (*src)[1];
 
     auto bin_nibble_low = ConvertHexNibbleCharToBin(hex_nibble_low);
     auto bin_nibble_high = ConvertHexNibbleCharToBin(hex_nibble_high);
@@ -59,42 +59,55 @@ bool ConvertHexByteToBin(char (*src)[2], u8 *dest) {
     if (!bin_nibble_low.HasValue()) return false;
     if (!bin_nibble_high.HasValue()) return false;
 
-    *dest = (char)55;/*
+    *dest =
 	(bin_nibble_high.Value() << 4) |
-	bin_nibble_low.Value();*/
+	bin_nibble_low.Value();
 
     return true;
 }
 
-void WriteStuffToDest(char (*src)[2], u8 *dest) {
-    *dest = *src[0] + *src[1];
-}
-
-int Main(void) noexcept {
-    char src[] = "11";
+bool Main(void) noexcept {
+    auto src = text("0123456789abcdefABCDEF");
+    
     auto src_text = text("Source text: ");
     PrintStringA(src_text);
-    PrintStringA(src, sizeof src);
+    PrintStringA(src);
     PrintNewline();
 
-    char dest_byte;
-    bool conversion_complete = ConvertHexByteToBin(
-	reinterpret_cast<char (*)[2]>(src),
-	reinterpret_cast<u8 *>(&dest_byte));
-    if (!conversion_complete) {
-	auto error_msg = text("Error detected during conversion");
-	PrintStringA(error_msg);
-	return 1;
+    u8 dest_bytes[0xf];
+    usize isrc = 0;
+    usize idest = 0;
+    while(true) {
+	bool conversion_complete = ConvertHexByteToBin(
+	    reinterpret_cast<char (*)[2]>(&src.chars()[isrc]),
+	    reinterpret_cast<u8 *>(&dest_bytes[idest]));
+	
+	if (!conversion_complete) {
+	    auto error_msg = text("Error detected during conversion");
+	    PrintStringA(error_msg);
+	    PrintNewline();
+	    break;
+	}
+
+	isrc += 2;
+	idest += 1;
+
+	if (!(isrc < src.len()) ||
+	    !(idest < sizeof dest_bytes)) break;
     }
 
     auto dest_bytes_text = text("Dest bytes: ");
     PrintStringA(dest_bytes_text);
-    PrintMemHexByteArray(reinterpret_cast<u8 *>(&dest_byte), 1);
+    PrintMemHexByteArray(
+	reinterpret_cast<u8 *>(dest_bytes),
+	sizeof dest_bytes);
     PrintNewline();
 
-    return 0;
+    return true;
 }
 
 void Startup(void) noexcept {
-    ExitProcess(Main());
+    // TODO: when removing <cstdint>,
+    // CheckWetherTypeSizesMeetExpectations();
+    ExitProcess(!Main());
 }
