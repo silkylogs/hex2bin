@@ -11,39 +11,87 @@ constexpr auto INVALID_HEX_CHAR = static_cast<char>(0xff);
 #include "text.cpp"
 #include "printing.cpp"
 
-// TODO: implement a better optional struct
 template <typename T>
-union option {
-    T m_contained_val;
+struct tagged_value {
+    union { T m_contained_val; };
     bool m_has_value;
+
+    bool HasValue(void) {
+	return m_has_value;
+    }
+
+    T Value(void) {
+	return m_contained_val;
+    }
 };
 
+struct nothing {};
+
 template <typename T>
-option<T> option_none(void) { return option<T>{0, false}; }
-
-option<u8> ConvertHexNibbleToBin(char *src, char *dest) {
-    auto c = *src;
-    if (c > 'f' || c < '0') return option_none<u8>();
-    return option_none<u8>();
-
+tagged_value<T> NoValue(void) {
+    tagged_value<T> retval;
+    retval.m_has_value = false;
+    return retval;
 }
 
-/*
-void ConvertHexByteToBin(char *src, char *dest) {
-    auto hex_nibble_high = src[0];
-    auto hex_nibble_low = src[1];
+template <typename T>
+tagged_value<T> SomeValue(T val) {
+    tagged_value<T> retval;
+    retval.m_contained_val = val;
+    retval.m_has_value = false;
+    return retval;
 }
-*/
+
+tagged_value<u8> ConvertHexNibbleCharToBin(char c) {
+    if (c >= '0' || c <= '9') return SomeValue<u8>(c - '0');
+    if (c >= 'F' || c <= 'F') return SomeValue<u8>(c - 'A');
+    if (c >= 'a' || c <= 'f') return SomeValue<u8>(c - 'a');
+    return NoValue<u8>();
+}
+
+bool ConvertHexByteToBin(char (*src)[2], u8 *dest) {
+    auto hex_nibble_high = *src[0];
+    auto hex_nibble_low = *src[1];
+
+    auto bin_nibble_low = ConvertHexNibbleCharToBin(hex_nibble_low);
+    auto bin_nibble_high = ConvertHexNibbleCharToBin(hex_nibble_high);
+
+    if (!bin_nibble_low.HasValue()) return false;
+    if (!bin_nibble_high.HasValue()) return false;
+
+    *dest = (char)55;/*
+	(bin_nibble_high.Value() << 4) |
+	bin_nibble_low.Value();*/
+
+    return true;
+}
+
+void WriteStuffToDest(char (*src)[2], u8 *dest) {
+    *dest = *src[0] + *src[1];
+}
 
 int Main(void) noexcept {
-    auto str = text("0123456789");
-    PrintStringA(str);
+    char src[] = "11";
+    auto src_text = text("Source text: ");
+    PrintStringA(src_text);
+    PrintStringA(src, sizeof src);
     PrintNewline();
 
-    u8 mem[] { 1, 2, 3, 4, 5, 10, 25, 100, 200, 255 };
-    PrintMemHexByteArray(mem, sizeof mem);
+    char dest_byte;
+    bool conversion_complete = ConvertHexByteToBin(
+	reinterpret_cast<char (*)[2]>(src),
+	reinterpret_cast<u8 *>(&dest_byte));
+    if (!conversion_complete) {
+	auto error_msg = text("Error detected during conversion");
+	PrintStringA(error_msg);
+	return 1;
+    }
+
+    auto dest_bytes_text = text("Dest bytes: ");
+    PrintStringA(dest_bytes_text);
+    PrintMemHexByteArray(reinterpret_cast<u8 *>(&dest_byte), 1);
     PrintNewline();
-    
+
     return 0;
 }
 
