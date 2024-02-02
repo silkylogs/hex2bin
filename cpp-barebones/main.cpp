@@ -12,6 +12,13 @@ constexpr auto INVALID_HEX_CHAR = static_cast<char>(0xff);
 #include "printing.cpp"
 #include "tagged_value.cpp"
 
+bool MemCopy(u8 const* src, usize src_len, u8 *dest, usize dest_len) {
+    if (dest_len < src_len) return false;
+    for (usize i = 0; i < dest_len; ++i)
+	dest[i] = src[i];
+    return true;
+}
+
 tagged_value<u8> ConvertHexNibbleCharToBin(char c) {
     if (c >= '0' && c <= '9') return SomeValue<u8>(c - '0');
     else if (c >= 'A' && c <= 'F') return SomeValue<u8>(c - 'A' + 0xA);
@@ -57,7 +64,7 @@ bool ConvertHexArrayToBin(char *src, usize src_len, u8 *dest, usize dest_len) {
 	bool conversion_successful = ConvertHexByteToBin(
 	    reinterpret_cast<char (*)[2]>(&src[isrc]),
 	    &dest[idest]);
-	
+
 	if (!conversion_successful) {
 	    auto error_msg = text(
 		"Error: "
@@ -79,31 +86,90 @@ bool ConvertHexArrayToBin(char *src, usize src_len, u8 *dest, usize dest_len) {
 	    PrintNewline();
 	    return false;
 	}
-	
+
 	if (!(isrc < src_len)) break;
     }
 
     return true;
 }
 
+
+bool StripWhitespace(char *src, usize src_len, char *dest, usize dest_len) {
+    if (dest_len < src_len) return false;
+
+    usize isrc = 0, idest = 0;
+    while (true) {
+	auto is_space { src[isrc] == ' ' };
+	auto is_tab { src[isrc] == '\t' };
+	auto is_whitespace { is_space || is_tab };
+
+	if (idest > dest_len) {
+	    auto err_msg =
+		text("Error: Destination index overflow detected");
+	    PrintStringA(err_msg);
+	    PrintNewline();
+	    return false;
+	}
+
+	if (is_whitespace) {
+	    isrc++;
+	} else {
+	    dest[idest] = src[isrc];
+	    idest++;
+	    isrc++;
+	}
+
+	if (isrc >= src_len) break;
+    }
+
+    return true;
+}
+
 bool Main(void) noexcept {
-    auto src = text("0123456789abcdefABCDEFcafebabe");
-    
+    u8 working_space[0xf] = "\t ba be\tb0 0b\t";
+    constexpr usize working_space_len = sizeof working_space - 1;
+
     auto src_text = text("Source text: ");
     PrintStringA(src_text);
-    PrintStringA(src);
+    PrintStringA("\"", 1);
+    PrintStringA(
+	reinterpret_cast<char*>(working_space),
+	working_space_len);
+    PrintStringA("\"", 1);
     PrintNewline();
 
-    u8 dest_bytes[0xf];
-    ConvertHexArrayToBin(
-	src.chars(), src.len(),
-	dest_bytes, sizeof dest_bytes);
+    if(!StripWhitespace(
+	   reinterpret_cast<char*>(working_space), working_space_len,
+	   reinterpret_cast<char*>(working_space), working_space_len))
+    {
+	auto err_msg = text("Error: failed to strip whitespace");
+	PrintStringA(err_msg);
+	PrintNewline();
+	return false;
+    }
+
+    auto stripped_text = text("After stripping whitespace: ");
+    PrintStringA(stripped_text);
+    PrintStringA("\"", 1);
+    PrintStringA(
+	reinterpret_cast<char*>(working_space),
+	working_space_len);
+    PrintStringA("\"", 1);
+    PrintNewline();
+
+    if(!ConvertHexArrayToBin(
+	   reinterpret_cast<char*>(working_space), working_space_len,
+	   working_space, working_space_len))
+    {
+	auto err_msg = text("Error: failed to convert hex array to binary");
+	PrintStringA(err_msg);
+	PrintNewline();
+	//return false;
+    }
 
     auto dest_bytes_text = text("Dest bytes: ");
     PrintStringA(dest_bytes_text);
-    PrintMemHexByteArray(
-	reinterpret_cast<u8 *>(dest_bytes),
-	sizeof dest_bytes);
+    PrintMemHexByteArray(working_space, working_space_len);
     PrintNewline();
 
     return true;
