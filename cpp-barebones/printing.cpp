@@ -1,5 +1,7 @@
 #pragma once
 
+constexpr auto INVALID_HEX_CHAR = static_cast<char>(0xff);
+
 void PrintStringA(const char *str, const usize length) noexcept {
     if (length <= 0) return;
     void *handle = GetStdHandle(STD_OUTPUT_HANDLE);

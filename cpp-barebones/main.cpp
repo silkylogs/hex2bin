@@ -3,142 +3,84 @@
 
 using usize = std::size_t;
 using i32 = std::int32_t;
+using u32 = std::uint32_t;
+using u16 = std::uint16_t;
 using u8 = std::uint8_t;
 
-constexpr auto INVALID_HEX_CHAR = static_cast<char>(0xff);
 
 #include "windows_includes.cpp"
 #include "text.cpp"
 #include "printing.cpp"
 #include "tagged_value.cpp"
+#include "misc_utility.cpp"
+#include "hex_to_bin_converters.cpp"
 
-bool MemCopy(u8 const* src, usize src_len, u8 *dest, usize dest_len) {
-    if (dest_len < src_len) return false;
-    for (usize i = 0; i < dest_len; ++i)
-	dest[i] = src[i];
-    return true;
-}
+struct string_slice {
+    char *chars;
+    usize len;
 
-tagged_value<u8> ConvertHexNibbleCharToBin(char c) {
-    if (c >= '0' && c <= '9') return SomeValue<u8>(c - '0');
-    else if (c >= 'A' && c <= 'F') return SomeValue<u8>(c - 'A' + 0xA);
-    else if (c >= 'a' && c <= 'f') return SomeValue<u8>(c - 'a' + 0xa);
-    else return NoValue<u8>();
-}
+    char operator[](usize index) {
+	return chars[index];
+    }
+    
+    bool operator==(const string_slice &other) {
+	return (other.chars == this->chars) && (other.len == this->len);
+    }
+};
 
-bool ConvertHexByteToBin(char hex_nibble_high, char hex_nibble_low, u8 *dest) {
-    auto bin_nibble_high = ConvertHexNibbleCharToBin(hex_nibble_high);
-    if (!bin_nibble_high.HasValue()) return false;
+struct cmd_line_details {
+    string_slice input_filename;
+    string_slice output_filename;
+};
 
-    u8 bin_nibble_low_applied_value;
-    auto bin_nibble_low = ConvertHexNibbleCharToBin(hex_nibble_low);
-    if (bin_nibble_low.HasValue())
-	bin_nibble_low_applied_value = bin_nibble_low.Value();
-    else
-	bin_nibble_low_applied_value = 0;
-
-    *dest =
-	(bin_nibble_high.Value() << 4) |
-	bin_nibble_low_applied_value;
-
-    return true;
-}
-
-usize DivRoundUp(usize numerator, usize denominator) {
-    usize remainder = numerator % denominator;
-    usize dividend = numerator / denominator;
-    return dividend + remainder;
-}
-
-bool ConvertHexArrayToBin(char *src, usize src_len, u8 *dest, usize dest_len) {
-    // Each byte is represented by two ascii characters
-    if (DivRoundUp(src_len, 2) > dest_len) {
-	auto err_msg =
-	    text("Error: Destination buffer has insufficient space");
-	PrintLineA(err_msg);
-	return false;
+cmd_line_details ParseCommandLineA(char const* cmdline) {
+    string_slice unsliced_cmdline {
+	.chars = const_cast<char*>(cmdline),
+	.len = 0,
+    };
+    {
+	char *ptr = unsliced_cmdline.chars;
+	while(*ptr != 0) {
+	    unsliced_cmdline.len++;
+	    ptr++;
+	}
     }
 
-    usize isrc = 0, idest = 0;
-    while(true) {
-	bool conversion_successful = ConvertHexByteToBin(
-	    src[isrc], src[isrc + 1],
-	    &dest[idest]);
+    string_slice filename_in;
+    string_slice filename_out;
 
-	// Zero final unprovided nibble
-	if (1 == (src_len - isrc)) dest[idest] &= 0xf0;
-
-	if (!conversion_successful) {
-	    auto error_msg = text(
-		"Error: "
-		"conversion from hexadecimal character to "
-		"binary representation failed");
-	    PrintLineA(error_msg);
-	    return false;
-	}
-
-	isrc += 2;
-	idest += 1;
-
-	// This check is probably redundant
-	if (!(idest <= dest_len)) {
-	    auto err_msg =
-		text("Error: Destination index overflow detected");
-	    PrintLineA(err_msg);
-	    return false;
-	}
-
-	if (!(isrc < src_len)) break;
+    string_slice current_word = unsliced_cmdline;
+    current_word.len = 0;
+    for (usize i = 0; i < unsliced_cmdline.len; ++i) {
+	;
     }
-
-    return true;
-}
-
-
-bool StripWhitespace(
-    char *src, usize src_len,
-    char *dest, usize dest_len,
-    usize *stripped_len)
-{
-    if (dest_len < src_len) return false;
-
-    usize isrc = 0, idest = 0;
-    while (true) {
-	auto is_space { src[isrc] == ' ' };
-	auto is_tab { src[isrc] == '\t' };
-	auto is_whitespace { is_space || is_tab };
-
-	if (idest > dest_len) {
-	    auto err_msg =
-		text("Error: Destination index overflow detected");
-	    PrintLineA(err_msg);
-	    return false;
-	}
-
-	if (is_whitespace) {
-	    isrc++;
-	} else {
-	    dest[idest] = src[isrc];
-	    idest++;
-	    isrc++;
-	}
-
-	if (isrc >= src_len) break;
-    }
-
-    *stripped_len = idest;
-    return true;
+    
+    PrintLineQoutedA(filename_in.chars, filename_in.len);
+    PrintLineQoutedA(filename_out.chars, filename_out.len);
+    return cmd_line_details {
+	.input_filename = filename_in,
+	.output_filename = filename_out,
+    };
 }
 
 u8 working_space[] = "\t ba be\tb0 0b\tabcd eff";
 constexpr usize working_space_len = sizeof working_space - 1;
 
-bool Main(void) noexcept {
+bool Main(char *command_line) {
+    const char *test_cmdline =
+	"c:/convoluted\\path\\..\\hex2bin.exe "
+	"valid_input.txt invalid_input.txt "
+	"-o valid_output.bin invalid_out.bin";
+    
+    auto parsed_command_line = ParseCommandLineA(test_cmdline);
+    
     auto src_text = text("Source text: ");
+    PrintStringA(src_text);
     PrintLineQoutedA(
 	reinterpret_cast<char*>(working_space),
 	working_space_len);
 
+    
     usize stripped_len;
     if(!StripWhitespace(
 	   reinterpret_cast<char*>(working_space), working_space_len,
@@ -155,6 +97,7 @@ bool Main(void) noexcept {
 	reinterpret_cast<char*>(working_space),
 	stripped_len);
 
+    
     auto bin_len = DivRoundUp(stripped_len, 2);
     if(!ConvertHexArrayToBin(
 	   reinterpret_cast<char*>(working_space), stripped_len,
@@ -169,11 +112,14 @@ bool Main(void) noexcept {
     PrintMemHexByteArray(working_space, bin_len);
     PrintNewline();
 
+    
     return true;
 }
 
 void Startup(void) noexcept {
     // TODO: when removing <cstdint>,
     // CheckWetherTypeSizesMeetExpectations();
-    ExitProcess(!Main());
+    char *command_line = GetCommandLineA();
+    bool result = Main(command_line);
+    ExitProcess(!result);
 }
