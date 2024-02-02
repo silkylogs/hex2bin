@@ -26,17 +26,16 @@ tagged_value<u8> ConvertHexNibbleCharToBin(char c) {
     else return NoValue<u8>();
 }
 
-bool ConvertHexByteToBin(char (*src)[2], u8 *dest) {
-    auto hex_nibble_high = (*src)[0];
-    auto hex_nibble_low = (*src)[1];
-
+bool ConvertHexByteToBin(char hex_nibble_high, char hex_nibble_low, u8 *dest) {
     auto bin_nibble_high = ConvertHexNibbleCharToBin(hex_nibble_high);
     if (!bin_nibble_high.HasValue()) return false;
 
-    u8 bin_nibble_low_applied_value = 0;
+    u8 bin_nibble_low_applied_value;
     auto bin_nibble_low = ConvertHexNibbleCharToBin(hex_nibble_low);
     if (bin_nibble_low.HasValue())
 	bin_nibble_low_applied_value = bin_nibble_low.Value();
+    else
+	bin_nibble_low_applied_value = 0;
 
     *dest =
 	(bin_nibble_high.Value() << 4) |
@@ -45,33 +44,36 @@ bool ConvertHexByteToBin(char (*src)[2], u8 *dest) {
     return true;
 }
 
+usize DivRoundUp(usize numerator, usize denominator) {
+    usize remainder = numerator % denominator;
+    usize dividend = numerator / denominator;
+    return dividend + remainder;
+}
+
 bool ConvertHexArrayToBin(char *src, usize src_len, u8 *dest, usize dest_len) {
-    // Note: The reason destination length is multiplied by two
-    // as opposed to dividing the source length by two
-    // is to account for integer division rounding down to the nearest
-    // number instead of rounding up, the former of which leads to the
-    // desired behaviour for this case
-    if (src_len > dest_len * 2) {
+    // Each byte is represented by two ascii characters
+    if (DivRoundUp(src_len, 2) > dest_len) {
 	auto err_msg =
 	    text("Error: Destination buffer has insufficient space");
-	PrintStringA(err_msg);
-	PrintNewline();
+	PrintLineA(err_msg);
 	return false;
     }
 
     usize isrc = 0, idest = 0;
     while(true) {
 	bool conversion_successful = ConvertHexByteToBin(
-	    reinterpret_cast<char (*)[2]>(&src[isrc]),
+	    src[isrc], src[isrc + 1],
 	    &dest[idest]);
+
+	// Zero final unprovided nibble
+	if (1 == (src_len - isrc)) dest[idest] &= 0xf0;
 
 	if (!conversion_successful) {
 	    auto error_msg = text(
 		"Error: "
 		"conversion from hexadecimal character to "
 		"binary representation failed");
-	    PrintStringA(error_msg);
-	    PrintNewline();
+	    PrintLineA(error_msg);
 	    return false;
 	}
 
@@ -82,8 +84,7 @@ bool ConvertHexArrayToBin(char *src, usize src_len, u8 *dest, usize dest_len) {
 	if (!(idest <= dest_len)) {
 	    auto err_msg =
 		text("Error: Destination index overflow detected");
-	    PrintStringA(err_msg);
-	    PrintNewline();
+	    PrintLineA(err_msg);
 	    return false;
 	}
 
@@ -94,7 +95,11 @@ bool ConvertHexArrayToBin(char *src, usize src_len, u8 *dest, usize dest_len) {
 }
 
 
-bool StripWhitespace(char *src, usize src_len, char *dest, usize dest_len) {
+bool StripWhitespace(
+    char *src, usize src_len,
+    char *dest, usize dest_len,
+    usize *stripped_len)
+{
     if (dest_len < src_len) return false;
 
     usize isrc = 0, idest = 0;
@@ -106,8 +111,7 @@ bool StripWhitespace(char *src, usize src_len, char *dest, usize dest_len) {
 	if (idest > dest_len) {
 	    auto err_msg =
 		text("Error: Destination index overflow detected");
-	    PrintStringA(err_msg);
-	    PrintNewline();
+	    PrintLineA(err_msg);
 	    return false;
 	}
 
@@ -122,54 +126,47 @@ bool StripWhitespace(char *src, usize src_len, char *dest, usize dest_len) {
 	if (isrc >= src_len) break;
     }
 
+    *stripped_len = idest;
     return true;
 }
 
-bool Main(void) noexcept {
-    u8 working_space[0xf] = "\t ba be\tb0 0b\t";
-    constexpr usize working_space_len = sizeof working_space - 1;
+u8 working_space[] = "\t ba be\tb0 0b\tabcd eff";
+constexpr usize working_space_len = sizeof working_space - 1;
 
+bool Main(void) noexcept {
     auto src_text = text("Source text: ");
-    PrintStringA(src_text);
-    PrintStringA("\"", 1);
-    PrintStringA(
+    PrintLineQoutedA(
 	reinterpret_cast<char*>(working_space),
 	working_space_len);
-    PrintStringA("\"", 1);
-    PrintNewline();
 
+    usize stripped_len;
     if(!StripWhitespace(
 	   reinterpret_cast<char*>(working_space), working_space_len,
-	   reinterpret_cast<char*>(working_space), working_space_len))
+	   reinterpret_cast<char*>(working_space), working_space_len,
+	   &stripped_len))
     {
 	auto err_msg = text("Error: failed to strip whitespace");
-	PrintStringA(err_msg);
-	PrintNewline();
+	PrintLineA(err_msg);
 	return false;
     }
-
     auto stripped_text = text("After stripping whitespace: ");
     PrintStringA(stripped_text);
-    PrintStringA("\"", 1);
-    PrintStringA(
+    PrintLineQoutedA(
 	reinterpret_cast<char*>(working_space),
-	working_space_len);
-    PrintStringA("\"", 1);
-    PrintNewline();
+	stripped_len);
 
+    auto bin_len = DivRoundUp(stripped_len, 2);
     if(!ConvertHexArrayToBin(
-	   reinterpret_cast<char*>(working_space), working_space_len,
-	   working_space, working_space_len))
+	   reinterpret_cast<char*>(working_space), stripped_len,
+	   working_space, bin_len))
     {
 	auto err_msg = text("Error: failed to convert hex array to binary");
-	PrintStringA(err_msg);
-	PrintNewline();
-	//return false;
+	PrintLineA(err_msg);
+	return false;
     }
-
     auto dest_bytes_text = text("Dest bytes: ");
     PrintStringA(dest_bytes_text);
-    PrintMemHexByteArray(working_space, working_space_len);
+    PrintMemHexByteArray(working_space, bin_len);
     PrintNewline();
 
     return true;

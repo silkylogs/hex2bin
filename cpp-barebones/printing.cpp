@@ -19,6 +19,36 @@ void PrintNewline(void) {
     PrintStringA(newline);
 }
 
+template <usize t_strlen>
+void PrintLineA(text<t_strlen> &str) {
+    PrintStringA(str);
+    PrintNewline();
+}
+
+template <usize t_strlen>
+void PrintStringQoutedA(text<t_strlen> &str) {
+    PrintStringA("\"", 1);
+    PrintStringA(str);
+    PrintStringA("\"", 1);
+}
+
+void PrintStringQoutedA(const char *str, const usize length) {
+    PrintStringA("\"", 1);
+    PrintStringA(str, length);
+    PrintStringA("\"", 1);
+}
+
+template <usize t_strlen>
+void PrintLineQoutedA(text<t_strlen> &str) {
+    PrintStringQoutedA(str);
+    PrintNewline();
+}
+
+void PrintLineQoutedA(const char *str, const usize length) {
+    PrintStringQoutedA(str, length);
+    PrintNewline();
+}
+
 char ConvNibbleToHex(u8 nibble) {
     if (nibble <= 0x9)
 	return '0' + static_cast<char>(nibble);
@@ -58,3 +88,4 @@ void PrintMemHexByteArray(u8 *mem, usize len) {
     
     PrintStringA(rbrace);
 }
+
