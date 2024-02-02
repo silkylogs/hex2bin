@@ -70,9 +70,10 @@ bool ConvertHexByteToBin(char (*src)[2], u8 *dest) {
 
 bool ConvertHexArrayToBin(char *src, usize src_len, u8 *dest, usize dest_len) {
     // Note: The reason destination length is multiplied by two
+    // as opposed to dividing the source length by two
     // is to account for integer division rounding down to the nearest
-    // number instead of rounding up, which will lead to the the
-    // desired behaviour in this case
+    // number instead of rounding up, the former of which leads to the
+    // desired behaviour for this case
     if (src_len > dest_len * 2) {
 	auto err_msg =
 	    text("Error: Destination buffer has insufficient space");
