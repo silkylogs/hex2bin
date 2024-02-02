@@ -10,37 +10,7 @@ constexpr auto INVALID_HEX_CHAR = static_cast<char>(0xff);
 #include "windows_includes.cpp"
 #include "text.cpp"
 #include "printing.cpp"
-
-template <typename T>
-struct tagged_value {
-    union { T m_contained_val; };
-    bool m_has_value;
-
-    bool HasValue(void) {
-	return m_has_value;
-    }
-
-    T Value(void) {
-	return m_contained_val;
-    }
-};
-
-struct nothing {};
-
-template <typename T>
-tagged_value<T> NoValue(void) {
-    tagged_value<T> retval;
-    retval.m_has_value = false;
-    return retval;
-}
-
-template <typename T>
-tagged_value<T> SomeValue(T val) {
-    tagged_value<T> retval;
-    retval.m_contained_val = val;
-    retval.m_has_value = true;
-    return retval;
-}
+#include "tagged_value.cpp"
 
 tagged_value<u8> ConvertHexNibbleCharToBin(char c) {
     if (c >= '0' && c <= '9') return SomeValue<u8>(c - '0');
